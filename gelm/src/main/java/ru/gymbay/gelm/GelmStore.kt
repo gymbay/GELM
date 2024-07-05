@@ -1,11 +1,10 @@
 package ru.gymbay.gelm
 
-import androidx.annotation.AnyThread
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -39,14 +38,15 @@ import java.util.concurrent.ConcurrentHashMap
  * @property effect Reactive one-shot events, stateless.
  * If no subscribers when event happens, it will be stored and replay to new subscriber.
  */
-class GelmStore<State, Effect, Event, InternalEvent, Command>(
+open class GelmStore<State, Effect, Event, InternalEvent, Command>(
     initialState: State,
     private val externalReducer: GelmExternalReducer<Event, State, Effect, Command>,
     private val internalReducer: GelmInternalReducer<InternalEvent, State, Effect, Command>? = null,
     private val actor: GelmActor<Command, InternalEvent>? = null,
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob()),
     private val commandsDispatcher: CoroutineDispatcher = Dispatchers.Default,
     effectsReplayCache: Int = 1
-) : ViewModel(), GelmObserver<Event>, GelmSubjectActions {
+) : GelmObserver<Event>, GelmSubjectActions {
 
     val state: Flow<State>
         get() = _state
@@ -72,7 +72,6 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
      *
      * @param event External event for handling.
      */
-    @AnyThread
     override fun sendEvent(event: Event) {
         val result = externalReducer.startProcessing(_state.value, event)
         handleReducerResult(result)
@@ -97,17 +96,17 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
     }
 
     private fun handleReducerResult(result: ReducerResult<State, Effect, Command>) {
-        viewModelScope.launch {
+        scope.launch {
             _state.update { result.state }
         }
 
-        viewModelScope.launch {
+        scope.launch {
             result.effects.forEach {
                 _effect.emit(it)
             }
         }
 
-        viewModelScope.launch(commandsDispatcher) {
+        scope.launch(commandsDispatcher) {
             val actor = actor ?: return@launch
             for (command in result.cancelledCommands) {
                 activeCommandsPull.remove(command)?.cancel()

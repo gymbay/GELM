@@ -1,35 +1,34 @@
 package ru.gymbay.gelm
 
 import junit.framework.TestCase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import ru.gymbay.gelm.reducers.GelmExternalReducer
 import ru.gymbay.gelm.reducers.GelmInternalReducer
 import ru.gymbay.gelm.reducers.Modifier
-import ru.gymbay.gelm.utils.MainDispatcherRule
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(JUnit4::class)
 class GelmStoreTest_ManyCommands : TestCase() {
 
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
-
     @Test
     fun testManyCommands() = runTest {
-        val testDispatcher = StandardTestDispatcher(testScheduler)
         val store = GelmStore(
             initialState = State(),
             externalReducer = TestExternalReducer(),
             internalReducer = TestInternalReducer(),
             actor = TestActor(),
-            commandsDispatcher = testDispatcher
+            scope = CoroutineScope(UnconfinedTestDispatcher()),
+            commandsDispatcher = StandardTestDispatcher(testScheduler)
         )
 
         advanceUntilIdle()
