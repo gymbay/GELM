@@ -1,7 +1,6 @@
 package ru.gymbay.gelm
 
 import kotlinx.coroutines.flow.Flow
-import ru.gymbay.gelm.observer.GelmSubject
 
 /**
  * Optional entity responsible for handling async [Command].
@@ -9,7 +8,7 @@ import ru.gymbay.gelm.observer.GelmSubject
  * @param Command Async command to execute. Required.
  * @param InternalEvent Event from running async command. Required.
  */
-abstract class GelmActor<Command, InternalEvent> : GelmSubject() {
+abstract class GelmActor<Command, InternalEvent> {
 
     /**
      * Invokes from [GelmStore] for run async command.

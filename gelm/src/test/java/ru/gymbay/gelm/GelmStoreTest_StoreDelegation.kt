@@ -2,8 +2,7 @@ package ru.gymbay.gelm
 
 import junit.framework.TestCase
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -15,15 +14,15 @@ import org.junit.runners.JUnit4
 import ru.gymbay.gelm.reducers.GelmExternalReducer
 import ru.gymbay.gelm.reducers.Modifier
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(JUnit4::class)
 class GelmStoreTest_StoreDelegation : TestCase() {
 
     @Test
     fun testStoreDelegation() = runTest {
-        val initialStore = GelmStore(
+        val initialStore = GelmStore<Unit, Nothing, InitialEvent, Nothing, Nothing>(
             initialState = Unit,
             externalReducer = InitialExternalReducer(),
-            actor = InitialActor(),
             scope = CoroutineScope(UnconfinedTestDispatcher()),
             commandsDispatcher = StandardTestDispatcher(testScheduler)
         )
@@ -47,29 +46,15 @@ class GelmStoreTest_StoreDelegation : TestCase() {
         data class StartDelegation(val title: String) : InitialEvent
     }
 
-    private sealed interface InitialCommand {
-        data class StartDelegation(val title: String) : InitialCommand
-    }
-
-    private class InitialExternalReducer : GelmExternalReducer<InitialEvent, Unit, Nothing, InitialCommand>() {
-        override fun Modifier<Unit, Nothing, InitialCommand>.processEvent(
+    private class InitialExternalReducer :
+        GelmExternalReducer<InitialEvent, Unit, Nothing, Nothing>() {
+        override fun Modifier<Unit, Nothing, Nothing>.processEvent(
             currentState: Unit,
             event: InitialEvent
         ) {
             when (event) {
-                is InitialEvent.StartDelegation -> command(InitialCommand.StartDelegation(event.title))
+                is InitialEvent.StartDelegation -> event(DelegationEvent.Data(title = event.title))
             }
-        }
-    }
-
-    private class InitialActor: GelmActor<InitialCommand, Nothing>() {
-        override suspend fun execute(command: InitialCommand): Flow<Nothing> {
-            when (command) {
-                is InitialCommand.StartDelegation -> {
-                    notify(DelegationEvent.Data(title = command.title))
-                }
-            }
-            return emptyFlow()
         }
     }
 

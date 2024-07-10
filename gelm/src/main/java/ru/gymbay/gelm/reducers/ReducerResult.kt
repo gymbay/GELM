@@ -5,7 +5,8 @@ package ru.gymbay.gelm.reducers
  */
 data class ReducerResult<State, Effect, Command>(
     val state: State,
-    val effects: List<Effect> = emptyList(),
-    val commands: List<Command> = emptyList(),
-    val cancelledCommands: List<Command> = emptyList()
+    val effects: List<Effect>,
+    val commands: List<Command>,
+    val cancelledCommands: List<Command>,
+    val observersEvents: List<Any>
 )

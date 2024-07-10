@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import ru.gymbay.gelm.observer.GelmObserver
-import ru.gymbay.gelm.observer.GelmSubjectActions
+import ru.gymbay.gelm.observer.GelmSubject
 import ru.gymbay.gelm.reducers.GelmExternalReducer
 import ru.gymbay.gelm.reducers.GelmInternalReducer
 import ru.gymbay.gelm.reducers.ReducerResult
@@ -27,12 +27,14 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * @param initialState Started point of screen state. Generally it looks like State().
  * @param externalReducer Reducer for processing external [Event] sent by [GelmStore.sendEvent].
- * @param internalReducer Reducer for processing [InternalEvent] from [actor].
  * @param actor Entity for processing asynchronous [Command] from [externalReducer] or [internalReducer].
+ * @param internalReducer Reducer for processing [InternalEvent] from [actor].
  * And sending specific events to another store.
- * @param commandsDispatcher Dispatcher for handling [Command]s. Useful for tests. Default is [Dispatchers.Default].
+ * @param scope Coroutine scope for launching external [Event]. In view model it's viewModelScope
+ * @param commandsDispatcher Dispatcher for handling [Command]s in specific thread on [scope].
+ * Useful for tests. Default is [Dispatchers.Default].
  * @param effectsReplayCache How many effects will be repeated to first subscriber.
- * Useful when effects happens in background or before first subscribe. Default is 1.
+ * Useful when effects happens in background, before first subscribe or for tests. Default is 1.
  *
  * @property state Reactive stateful flow of state. Subscribe on it in UI.
  * @property effect Reactive one-shot events, stateless.
@@ -41,12 +43,12 @@ import java.util.concurrent.ConcurrentHashMap
 open class GelmStore<State, Effect, Event, InternalEvent, Command>(
     initialState: State,
     private val externalReducer: GelmExternalReducer<Event, State, Effect, Command>,
-    private val internalReducer: GelmInternalReducer<InternalEvent, State, Effect, Command>? = null,
     private val actor: GelmActor<Command, InternalEvent>? = null,
+    private val internalReducer: GelmInternalReducer<InternalEvent, State, Effect, Command>? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob()),
     private val commandsDispatcher: CoroutineDispatcher = Dispatchers.Default,
     effectsReplayCache: Int = 1
-) : GelmObserver<Event>, GelmSubjectActions {
+) : GelmObserver<Event>, GelmSubject() {
 
     val state: Flow<State>
         get() = _state
@@ -75,24 +77,6 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
     override fun sendEvent(event: Event) {
         val result = externalReducer.startProcessing(_state.value, event)
         handleReducerResult(result)
-    }
-
-    /**
-     * Subscribe another [GelmStore] to events from that [GelmStore].
-     *
-     * @param observer Generally another [GelmStore].
-     */
-    override fun subscribe(observer: GelmObserver<*>) {
-        actor?.subscribe(observer)
-    }
-
-    /**
-     * Unsubscribe another [GelmStore].
-     *
-     * @param observer Generally another [GelmStore].
-     */
-    override fun unsubscribe(observer: GelmObserver<*>) {
-        actor?.unsubscribe(observer)
     }
 
     private fun handleReducerResult(result: ReducerResult<State, Effect, Command>) {
@@ -131,6 +115,12 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
                     }
                 }
                 activeCommandsPull[command] = job
+            }
+        }
+
+        scope.launch {
+            for (event in result.observersEvents) {
+                notify(event)
             }
         }
     }

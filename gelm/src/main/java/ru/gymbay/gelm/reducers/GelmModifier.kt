@@ -2,7 +2,7 @@ package ru.gymbay.gelm.reducers
 
 /**
  * Class for making and accumulating changes to the current [State],
- * accumulating list of [Effect] and list of [Command].
+ * accumulating list of [Effect], list of [Command] and list of [ObserverEvent].
  *
  * All accumulating changes will be applied at the end of reducer work.
  */
@@ -15,13 +15,15 @@ class Modifier<State, Effect, Command>(
             internalState,
             internalEffects,
             internalCommands,
-            internalCancelledCommands
+            internalCancelledCommands,
+            observersEvents
         )
 
     private var internalState: State = state
     private val internalEffects: MutableList<Effect> = mutableListOf()
     private val internalCommands: MutableList<Command> = mutableListOf()
     private val internalCancelledCommands: MutableList<Command> = mutableListOf()
+    private val observersEvents: MutableList<Any> = mutableListOf()
 
     /**
      * Replaced current state to new [State].
@@ -68,6 +70,15 @@ class Modifier<State, Effect, Command>(
      */
     fun cancelCommand(command: Command) {
         internalCancelledCommands.add(command)
+    }
+
+    /**
+     * Event for observers subscribed on own [GelmStore]
+     *
+     * @param event The event will be sent to the observer.
+     */
+    fun <ObserverEvent : Any> event(event: ObserverEvent) {
+        observersEvents.add(event)
     }
 
 }
