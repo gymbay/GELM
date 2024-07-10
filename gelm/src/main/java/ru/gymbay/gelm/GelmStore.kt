@@ -3,6 +3,7 @@ package ru.gymbay.gelm
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
@@ -47,13 +48,15 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
     private val internalReducer: GelmInternalReducer<InternalEvent, State, Effect, Command>? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob()),
     private val commandsDispatcher: CoroutineDispatcher = Dispatchers.Default,
-    effectsReplayCache: Int = 1
+    effectsReplayCache: Int = 1,
+    private val logger: GelmLogger? = null
 ) : GelmObserver<Event>, GelmSubject() {
 
     val state: Flow<State>
         get() = _state
     private val _state: MutableStateFlow<State> = MutableStateFlow(initialState)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     val effect: Flow<Effect>
         get() = _effect
             .onEach {
@@ -65,6 +68,7 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
     private val activeCommandsPull: MutableMap<Command, Job> = ConcurrentHashMap()
 
     init {
+        logger?.log(EventType.InitialInvoked, "Initial state: ${initialState.toString()}")
         val result = externalReducer.startProcessing(initialState)
         handleReducerResult(result)
     }
@@ -75,18 +79,23 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
      * @param event External event for handling.
      */
     override fun sendEvent(event: Event) {
+        logger?.log(EventType.SendEventInvoked, "Event sent: ${event.toString()}")
         val result = externalReducer.startProcessing(_state.value, event)
         handleReducerResult(result)
     }
 
     private fun handleReducerResult(result: ReducerResult<State, Effect, Command>) {
+        logger?.log(EventType.HandleResultInvoked, "Handle result started: $result")
+
         scope.launch {
             _state.update { result.state }
+            logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
         }
 
         scope.launch {
             result.effects.forEach {
                 _effect.emit(it)
+                logger?.log(EventType.EffectEmitted, "Effect emitted: ${it.toString()}")
             }
         }
 
@@ -94,20 +103,26 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
             val actor = actor ?: return@launch
             for (command in result.cancelledCommands) {
                 activeCommandsPull.remove(command)?.cancel()
+                logger?.log(EventType.CommandCancelled, "Command cancelled: ${command.toString()}")
             }
             for (command in result.commands) {
                 // filtering duplicating active job
                 if (activeCommandsPull.containsKey(command)) {
+                    logger?.log(EventType.CommandSkipped, "Command skipped: ${command.toString()}")
                     continue
                 }
                 val job = launch {
                     val flow = actor.execute(command)
                         .onCompletion {
                             activeCommandsPull.remove(command)
+                            logger?.log(
+                                EventType.CommandCompleted,
+                                "Command completed: ${command.toString()}"
+                            )
                         }
 
-                    if (internalReducer != null) {
-                        flow.collect { actorEvent ->
+                    flow.collect { actorEvent ->
+                        if (internalReducer != null) {
                             val newResult =
                                 internalReducer.startProcessing(_state.first(), actorEvent)
                             handleReducerResult(newResult)
@@ -115,12 +130,14 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
                     }
                 }
                 activeCommandsPull[command] = job
+                logger?.log(EventType.CommandStarted, "Command started: ${command.toString()}")
             }
         }
 
         scope.launch {
             for (event in result.observersEvents) {
                 notify(event)
+                logger?.log(EventType.ObserverEventSent, "Observer event sent: $event")
             }
         }
     }

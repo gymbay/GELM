@@ -28,7 +28,12 @@ class GelmStoreTest_ManyCommands : TestCase() {
             internalReducer = TestInternalReducer(),
             actor = TestActor(),
             scope = CoroutineScope(UnconfinedTestDispatcher()),
-            commandsDispatcher = StandardTestDispatcher(testScheduler)
+            commandsDispatcher = StandardTestDispatcher(testScheduler),
+            logger = object : GelmLogger {
+                override fun log(eventType: EventType, message: String) {
+                    println("$eventType = $message")
+                }
+            }
         )
 
         advanceUntilIdle()
