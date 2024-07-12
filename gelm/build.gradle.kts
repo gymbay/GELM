@@ -37,6 +37,7 @@ android {
 
 dependencies {
     implementation(libs.coroutines)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

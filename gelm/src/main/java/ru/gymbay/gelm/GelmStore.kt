@@ -1,11 +1,11 @@
 package ru.gymbay.gelm
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,8 +31,7 @@ import java.util.concurrent.ConcurrentHashMap
  * @param actor Entity for processing asynchronous [Command] from [externalReducer] or [internalReducer].
  * @param internalReducer Reducer for processing [InternalEvent] from [actor].
  * And sending specific events to another store.
- * @param scope Coroutine scope for launching external [Event]. In view model it's viewModelScope
- * @param commandsDispatcher Dispatcher for handling [Command]s in specific thread on [scope].
+ * @param commandsDispatcher Dispatcher for handling [Command]s in specific thread on [viewModelScope].
  * Useful for tests. Default is [Dispatchers.Default].
  * @param effectsReplayCache How many effects will be repeated to first subscriber.
  * Useful when effects happens in background, before first subscribe or for tests. Default is 1.
@@ -41,16 +40,15 @@ import java.util.concurrent.ConcurrentHashMap
  * @property effect Reactive one-shot events, stateless.
  * If no subscribers when event happens, it will be stored and replay to new subscriber.
  */
-open class GelmStore<State, Effect, Event, InternalEvent, Command>(
+class GelmStore<State, Effect, Event, InternalEvent, Command>(
     initialState: State,
     private val externalReducer: GelmExternalReducer<Event, State, Effect, Command>,
     private val actor: GelmActor<Command, InternalEvent>? = null,
     private val internalReducer: GelmInternalReducer<InternalEvent, State, Effect, Command>? = null,
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob()),
     private val commandsDispatcher: CoroutineDispatcher = Dispatchers.Default,
     effectsReplayCache: Int = 1,
     private val logger: GelmLogger? = null
-) : GelmObserver<Event>, GelmSubject() {
+) : ViewModel(), GelmObserver<Event>, GelmSubject {
 
     val state: Flow<State>
         get() = _state
@@ -65,7 +63,8 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
 
     private val _effect: MutableSharedFlow<Effect> = MutableSharedFlow(replay = effectsReplayCache)
 
-    private val activeCommandsPull: MutableMap<Command, Job> = ConcurrentHashMap()
+    private val activeCommandsPull: MutableMap<Command, Job> by lazy { ConcurrentHashMap() }
+    override val observers: MutableList<GelmObserver<*>> by lazy { mutableListOf() }
 
     init {
         logger?.log(EventType.InitialInvoked, "Initial state: ${initialState.toString()}")
@@ -87,19 +86,19 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
     private fun handleReducerResult(result: ReducerResult<State, Effect, Command>) {
         logger?.log(EventType.HandleResultInvoked, "Handle result started: $result")
 
-        scope.launch {
+        viewModelScope.launch {
             _state.update { result.state }
             logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
         }
 
-        scope.launch {
+        viewModelScope.launch {
             result.effects.forEach {
                 _effect.emit(it)
                 logger?.log(EventType.EffectEmitted, "Effect emitted: ${it.toString()}")
             }
         }
 
-        scope.launch(commandsDispatcher) {
+        viewModelScope.launch(commandsDispatcher) {
             val actor = actor ?: return@launch
             for (command in result.cancelledCommands) {
                 activeCommandsPull.remove(command)?.cancel()
@@ -134,7 +133,7 @@ open class GelmStore<State, Effect, Event, InternalEvent, Command>(
             }
         }
 
-        scope.launch {
+        viewModelScope.launch {
             for (event in result.observersEvents) {
                 notify(event)
                 logger?.log(EventType.ObserverEventSent, "Observer event sent: $event")

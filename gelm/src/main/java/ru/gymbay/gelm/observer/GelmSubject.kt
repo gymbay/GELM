@@ -3,8 +3,8 @@ package ru.gymbay.gelm.observer
 /**
  * For objects that sending events to [GelmObserver]s.
  */
-abstract class GelmSubject : GelmSubjectActions {
-    private val observers: MutableList<GelmObserver<*>> = mutableListOf()
+interface GelmSubject : GelmSubjectActions {
+    val observers: MutableList<GelmObserver<*>>
 
     /**
      * Subscribe observer.
@@ -29,7 +29,7 @@ abstract class GelmSubject : GelmSubjectActions {
      *
      * @param event Event for notifying.
      */
-    protected fun <T> notify(event: T) {
+    fun <T> notify(event: T) {
         for (observer in observers) {
             (observer as? GelmObserver<T>)?.sendEvent(event)
         }

@@ -1,26 +1,29 @@
 package ru.gymbay.gelm
 
 import junit.framework.TestCase
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 import ru.gymbay.gelm.reducers.GelmExternalReducer
 import ru.gymbay.gelm.reducers.GelmInternalReducer
 import ru.gymbay.gelm.reducers.Modifier
+import ru.gymbay.gelm.utils.MainDispatcherRule
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(JUnit4::class)
 class GelmStoreTest_CancelCommands : TestCase() {
+
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
 
     @Test
     fun testCancelCommands() = runTest {
@@ -29,7 +32,6 @@ class GelmStoreTest_CancelCommands : TestCase() {
             externalReducer = TestExternalReducer(),
             internalReducer = TestInternalReducer(),
             actor = TestActor(),
-            scope = CoroutineScope(UnconfinedTestDispatcher()),
             commandsDispatcher = StandardTestDispatcher(testScheduler)
         )
 
