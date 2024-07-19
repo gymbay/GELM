@@ -9,6 +9,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
@@ -50,7 +51,7 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
     private val logger: GelmLogger? = null
 ) : ViewModel(), GelmObserver<Event>, GelmSubject {
 
-    val state: Flow<State>
+    val state: StateFlow<State>
         get() = _state
     private val _state: MutableStateFlow<State> = MutableStateFlow(initialState)
 
@@ -87,8 +88,12 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
         logger?.log(EventType.HandleResultInvoked, "Handle result started: $result")
 
         viewModelScope.launch {
-            _state.update { result.state }
-            logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
+            _state.update { prevValue ->
+                if (prevValue != result.state) {
+                    logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
+                }
+                result.state
+            }
         }
 
         viewModelScope.launch {

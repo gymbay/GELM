@@ -1,6 +1,6 @@
 package ru.gymbay.gelm
 
-interface GelmLogger {
+fun interface GelmLogger {
     fun log(eventType: EventType, message: String)
 }
 
