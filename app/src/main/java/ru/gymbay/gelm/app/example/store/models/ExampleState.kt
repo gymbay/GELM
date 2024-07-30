@@ -1,6 +1,6 @@
-package ru.gymbay.gelm.app.example.compose.store.models
+package ru.gymbay.gelm.app.example.store.models
 
-data class ComposeState(
+data class ExampleState(
     val isLoading: Boolean = false,
     val title: String = "Title",
     val editField: String = "default",

@@ -27,16 +27,16 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import ru.gymbay.gelm.app.R
-import ru.gymbay.gelm.app.example.compose.store.ComposeStore
-import ru.gymbay.gelm.app.example.compose.store.createComposeStore
-import ru.gymbay.gelm.app.example.compose.store.models.ComposeEffect
-import ru.gymbay.gelm.app.example.compose.store.models.ComposeEvent
-import ru.gymbay.gelm.app.example.compose.store.models.ComposeState
+import ru.gymbay.gelm.app.example.store.ExampleStore
+import ru.gymbay.gelm.app.example.store.createExampleStore
+import ru.gymbay.gelm.app.example.store.models.ExampleEffect
+import ru.gymbay.gelm.app.example.store.models.ExampleEvent
+import ru.gymbay.gelm.app.example.store.models.ExampleState
 
 
 class ExampleFragment : Fragment() {
 
-    private val store: ComposeStore by viewModels<ComposeStore> { Factory }
+    private val store: ExampleStore by viewModels<ExampleStore> { Factory }
 
     private val title: TextView? by lazy { view?.findViewById(R.id.title) }
     private val textField: TextInputLayout? by lazy { view?.findViewById(R.id.textField) }
@@ -60,13 +60,13 @@ class ExampleFragment : Fragment() {
         recycler?.adapter = adapter
 
         textField?.editText?.doOnTextChanged { text, _, _, _ ->
-            store.sendEvent(ComposeEvent.TypeText(text?.toString() ?: ""))
+            store.sendEvent(ExampleEvent.TypeText(text?.toString() ?: ""))
         }
         btnNext?.setOnClickListener {
-            store.sendEvent(ComposeEvent.Next)
+            store.sendEvent(ExampleEvent.Next)
         }
         btnReload?.setOnClickListener {
-            store.sendEvent(ComposeEvent.Reload)
+            store.sendEvent(ExampleEvent.Reload)
         }
 
         lifecycleScope.launch {
@@ -86,7 +86,7 @@ class ExampleFragment : Fragment() {
         }
     }
 
-    private fun onState(state: ComposeState) {
+    private fun onState(state: ExampleState) {
         recycler?.isVisible = !state.isLoading
         progress?.isVisible = state.isLoading
         title?.text = state.title
@@ -99,9 +99,9 @@ class ExampleFragment : Fragment() {
         adapter.submitList(state.items)
     }
 
-    private fun onEffect(effect: ComposeEffect) {
+    private fun onEffect(effect: ExampleEffect) {
         when (effect) {
-            ComposeEffect.NavigateToScreen -> Toast.makeText(
+            ExampleEffect.NavigateToScreen -> Toast.makeText(
                 context,
                 "Next screen!",
                 Toast.LENGTH_SHORT
@@ -146,7 +146,7 @@ class ExampleFragment : Fragment() {
         fun newInstance() = ExampleFragment()
 
         private val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer { createComposeStore() }
+            initializer { createExampleStore() }
         }
     }
 }

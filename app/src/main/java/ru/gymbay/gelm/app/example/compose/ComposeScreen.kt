@@ -26,24 +26,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import ru.gymbay.gelm.app.example.compose.store.ComposeStore
-import ru.gymbay.gelm.app.example.compose.store.createComposeStore
-import ru.gymbay.gelm.app.example.compose.store.models.ComposeEffect
-import ru.gymbay.gelm.app.example.compose.store.models.ComposeEvent
 import ru.gymbay.gelm.app.example.compose.utils.CollectEffect
+import ru.gymbay.gelm.app.example.store.ExampleStore
+import ru.gymbay.gelm.app.example.store.createExampleStore
+import ru.gymbay.gelm.app.example.store.models.ExampleEffect
+import ru.gymbay.gelm.app.example.store.models.ExampleEvent
 import ru.gymbay.gelm.app.ui.theme.GELMTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComposeScreen(
-    store: ComposeStore = createComposeStore()
+    store: ExampleStore = createExampleStore()
 ) {
     val state by store.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     CollectEffect(store.effect) { effect ->
         when (effect) {
-            ComposeEffect.NavigateToScreen -> {
+            ExampleEffect.NavigateToScreen -> {
                 Toast.makeText(context, "Button tapped!", Toast.LENGTH_LONG).show()
             }
         }
@@ -71,7 +71,7 @@ fun ComposeScreen(
                         .padding(horizontal = 16.dp),
                     value = state.editField,
                     onValueChange = {
-                        store.sendEvent(ComposeEvent.TypeText(it))
+                        store.sendEvent(ExampleEvent.TypeText(it))
                     }
                 )
 
@@ -101,7 +101,7 @@ fun ComposeScreen(
                 Button(
                     modifier = Modifier.align(alignment = Alignment.CenterHorizontally),
                     onClick = {
-                        store.sendEvent(ComposeEvent.Reload)
+                        store.sendEvent(ExampleEvent.Reload)
                     }
                 ) {
                     Text(text = "Reload")
@@ -110,7 +110,7 @@ fun ComposeScreen(
                 Button(
                     modifier = Modifier.align(alignment = Alignment.CenterHorizontally),
                     onClick = {
-                        store.sendEvent(ComposeEvent.Next)
+                        store.sendEvent(ExampleEvent.Next)
                     }
                 ) {
                     Text(text = "Next")
