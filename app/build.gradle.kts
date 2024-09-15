@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "ru.gymbay.gelm.app"
+    namespace = "io.github.gymbay.gelm.app"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "ru.gymbay.gelm.app"
+        applicationId = "io.github.gymbay.gelm.app"
         minSdk = 23
         targetSdk = 34
         versionCode = 1

@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.gymbay.gelm"
+    namespace = "io.github.gymbay.gelm"
     compileSdk = 34
 
     defaultConfig {
