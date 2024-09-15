@@ -36,7 +36,7 @@ import ru.gymbay.gelm.app.ui.theme.GELMTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComposeScreen(
-    store: ExampleStore = createExampleStore()
+    store: ExampleStore = createExampleStore(savedStateHandler = null)
 ) {
     val state by store.state.collectAsStateWithLifecycle()
     val context = LocalContext.current

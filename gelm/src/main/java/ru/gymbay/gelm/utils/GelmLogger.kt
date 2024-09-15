@@ -1,4 +1,4 @@
-package ru.gymbay.gelm
+package ru.gymbay.gelm.utils
 
 fun interface GelmLogger {
     fun log(eventType: EventType, message: String)

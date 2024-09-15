@@ -36,7 +36,9 @@ import ru.gymbay.gelm.app.example.store.models.ExampleState
 
 class ExampleFragment : Fragment() {
 
-    private val store: ExampleStore by viewModels<ExampleStore> { Factory }
+    private val store: ExampleStore by viewModels<ExampleStore> {
+        Factory
+    }
 
     private val title: TextView? by lazy { view?.findViewById(R.id.title) }
     private val textField: TextInputLayout? by lazy { view?.findViewById(R.id.textField) }
@@ -146,7 +148,7 @@ class ExampleFragment : Fragment() {
         fun newInstance() = ExampleFragment()
 
         private val Factory: ViewModelProvider.Factory = viewModelFactory {
-            initializer { createExampleStore() }
+            initializer { createExampleStore(null) }
         }
     }
 }

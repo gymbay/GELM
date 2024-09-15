@@ -14,6 +14,8 @@ import org.junit.runners.JUnit4
 import ru.gymbay.gelm.reducers.GelmExternalReducer
 import ru.gymbay.gelm.reducers.GelmInternalReducer
 import ru.gymbay.gelm.reducers.Modifier
+import ru.gymbay.gelm.utils.EventType
+import ru.gymbay.gelm.utils.GelmLogger
 import ru.gymbay.gelm.utils.MainDispatcherRule
 
 @OptIn(ExperimentalCoroutinesApi::class)

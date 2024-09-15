@@ -20,6 +20,9 @@ import ru.gymbay.gelm.observer.GelmSubject
 import ru.gymbay.gelm.reducers.GelmExternalReducer
 import ru.gymbay.gelm.reducers.GelmInternalReducer
 import ru.gymbay.gelm.reducers.ReducerResult
+import ru.gymbay.gelm.utils.EventType
+import ru.gymbay.gelm.utils.GelmLogger
+import ru.gymbay.gelm.utils.GelmSavedStateHandler
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -48,12 +51,25 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
     private val internalReducer: GelmInternalReducer<InternalEvent, State, Effect, Command>? = null,
     private val commandsDispatcher: CoroutineDispatcher = Dispatchers.Default,
     effectsReplayCache: Int = 1,
-    private val logger: GelmLogger? = null
+    private val logger: GelmLogger? = null,
+    private val savedStateHandler: GelmSavedStateHandler<State>? = null
 ) : ViewModel(), GelmObserver<Event>, GelmSubject {
+
+    private val startedState: State = run {
+        val restoredState = savedStateHandler?.restoreState(initialState)
+        when {
+            restoredState != null -> {
+                logger?.log(EventType.InitialInvoked, "State restored: $restoredState")
+                restoredState
+            }
+
+            else -> initialState
+        }
+    }
 
     val state: StateFlow<State>
         get() = _state
-    private val _state: MutableStateFlow<State> = MutableStateFlow(initialState)
+    private val _state: MutableStateFlow<State> = MutableStateFlow(startedState)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val effect: Flow<Effect>
@@ -68,8 +84,8 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
     override val observers: MutableList<GelmObserver<*>> by lazy { mutableListOf() }
 
     init {
-        logger?.log(EventType.InitialInvoked, "Initial state: ${initialState.toString()}")
-        val result = externalReducer.startProcessing(initialState)
+        logger?.log(EventType.InitialInvoked, "Initial state: ${startedState.toString()}")
+        val result = externalReducer.startProcessing(startedState)
         handleReducerResult(result)
     }
 
@@ -92,6 +108,7 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
                 if (prevValue != result.state) {
                     logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
                 }
+                savedStateHandler?.saveState(result.state)
                 result.state
             }
         }
