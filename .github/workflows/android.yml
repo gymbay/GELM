@@ -1,8 +1,7 @@
 name: Android CI
 
 on:
-  push:
-    tags: [ "v*.*.*" ]
+  pull_request:
 
 jobs:
   build:
