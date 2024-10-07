@@ -1,12 +1,13 @@
 package ru.gymbay.gelm.app.example.store.components
 
+import io.github.gymbay.gelm.app.example.store.components.ExampleExternalReducer
+import io.github.gymbay.gelm.app.example.store.models.ExampleCommand
+import io.github.gymbay.gelm.app.example.store.models.ExampleEvent
+import io.github.gymbay.gelm.app.example.store.models.ExampleState
 import junit.framework.TestCase
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import ru.gymbay.gelm.app.example.store.models.ExampleCommand
-import ru.gymbay.gelm.app.example.store.models.ExampleEvent
-import ru.gymbay.gelm.app.example.store.models.ExampleState
 
 @RunWith(JUnit4::class)
 class ExampleExternalReducerTest : TestCase() {

@@ -59,11 +59,29 @@ All types applied in [GelmStore](gelm/src/main/java/io/github/gymbay/gelm/GelmSt
   for [GelmActor](gelm/src/main/java/io/github/gymbay/gelm/GelmActor.kt). May be produced from
   external and internal reducer. In example, command for load data from serve or save to database.
 
-## Components
+## Main components
 
-### Main components
+Gelm works with 4 main and 2 additional components. In main components only 2 required and others
+optional.
+
+Minimum work configuration
+required [GelmStore](gelm/src/main/java/io/github/gymbay/gelm/GelmStore.kt)
+and [GelmExternalReducer](gelm/src/main/java/io/github/gymbay/gelm/reducers/GelmExternalReducer.kt).
 
 ### GelmStore
+
+Central entity for GELM architecture. Holder for architecture components. Responsible for coordinate
+flow of external and internal events.
+
+```kotlin
+import io.github.gymbay.gelm.utils.GelmStore
+
+// Minimum configuration
+GelmStore(
+  initialState = ExampleState(),
+  externalReducer = ExampleExternalReducer()
+)
+```
 
 ### GelmExternalReducer
 
