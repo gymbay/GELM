@@ -5,6 +5,8 @@ GELM is Android library for the popular presentation approach The ELM Architectu
 The library standardizes the work with sending and processing synchronous and asynchronous events.
 All inputs and outputs to library are strictly defined, which makes it easier to develop and test.
 
+![Gelm schema](/gelm_schema.jpg)
+
 # How to implement (Gradle)
 
 Library publicated in Maven Central repository, so you need first define Maven Central repository in
