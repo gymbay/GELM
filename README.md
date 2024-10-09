@@ -5,6 +5,7 @@ GELM is Android library for the popular presentation approach The ELM Architectu
 The library standardizes the work with sending and processing synchronous and asynchronous events.
 All inputs and outputs to library are strictly defined, which makes it easier to develop and test.
 
+### Gelm architecture schema
 ![Gelm schema](/gelm_schema.jpg)
 
 # How to implement (Gradle)
@@ -86,6 +87,54 @@ GelmStore(
 ```
 
 ### GelmExternalReducer
+
+Reducer is an entity responsible for handling external events (UI or another GelmStore).
+
+Reducer is a pure function and cause it must be stateless. Adding stored properties is a bad
+practice.
+
+To define your external reducer you can inherit GelmExternalReducer abstract class
+and override `processEvent(currentState: State, event: Event)`
+or/and `processInit(currentState: State)` functions.
+
+```kotlin
+import io.github.gymbay.gelm.reducers.GelmExternalReducer
+import io.github.gymbay.gelm.reducers.Modifier
+
+class ExampleExternalReducer :
+  GelmExternalReducer<ExampleEvent, ExampleState, ExampleEffect, ExampleCommand>() {
+
+  // Handle GelmStore init. 
+  // For example, to mutate state on screen start or start loading.
+  override fun Modifier<ExampleState, ExampleEffect, ExampleCommand>.processInit(currentState: ExampleState) {
+    TODO()
+  }
+
+  // Handle events from UI or another observed GelmStore 
+  override fun Modifier<ExampleState, ExampleEffect, ExampleCommand>.processEvent(
+    currentState: ExampleState,
+    event: ExampleEvent
+  ) {
+    when (event) {
+      ExampleEvent.Reload -> TODO()
+      is ExampleEvent.TypeText -> TODO()
+      is ExampleEvent.Next -> TODO()
+    }
+  }
+
+}
+```
+
+And then pass reducer to GelmStore
+
+```kotlin
+import io.github.gymbay.gelm.utils.GelmStore
+
+GelmStore(
+  initialState = ExampleState(),
+  externalReducer = ExampleExternalReducer()
+)
+```
 
 ### GelmActor
 
