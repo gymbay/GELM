@@ -86,6 +86,54 @@ GelmStore(
 )
 ```
 
+You can pass Events from UI to GelmStore using `sendEvent(event: Event)` function. All that event
+will be handled by GelmExternalReducer.
+
+```kotlin
+OutlinedTextField(
+  onValueChange = {
+    store.sendEvent(ExampleEvent.TypeText(it))
+  }
+)
+```
+
+And then you can observe changes in State subscribed on `state: StateFlow<State>`.
+
+```kotlin
+val state by store.state.collectAsStateWithLifecycle()
+
+OutlinedTextField(
+  value = state.editField,
+  onValueChange = {
+    store.sendEvent(ExampleEvent.TypeText(it))
+  }
+)
+```
+
+At the end you can use `effect: Flow<Effect>` to observe one-shot events.
+
+```kotlin
+// A little life hack to simplify observing in Compose
+@Composable
+fun <T> CollectEffect(
+  effect: Flow<T>,
+  context: CoroutineContext = EmptyCoroutineContext,
+  block: (T) -> Unit
+) {
+  LaunchedEffect(key1 = Unit) {
+    effect.onEach(block).flowOn(context).launchIn(this)
+  }
+}
+
+CollectEffect(store.effect) { effect ->
+  when (effect) {
+    ExampleEffect.NavigateToScreen -> {
+      Toast.makeText(context, "Button tapped!", Toast.LENGTH_LONG).show()
+    }
+  }
+}
+```
+
 ### GelmExternalReducer
 
 Reducer is an entity responsible for handling external events (UI or another GelmStore).
@@ -136,9 +184,54 @@ GelmStore(
 )
 ```
 
+Use `Modifier` in override functions to produce new state, effects and commands. As a result of
+reducer work will be produced `ReducerResult` data class. More detailed
+in [Modifier and ReducerResult](#modifier-and-reducerresult) section.
+
+On every invoke `GelmStore` passed actual current state and event to reducer. `currentState` is
+immutable, state mutations accumulates in `Modifier`.
+
 ### GelmActor
 
+Optional entity responsible for handling async or heavy computing commands from reducers. For
+example, request to server or database. Component use Flow to publish results with InternalEvent
+type.
+
+To define your Actor you can inherit GelmActor abstract class and
+override `suspend execute(command: Command): Flow<InternalEvent>` function.
+
+For example:
+
+```kotlin
+import io.github.gymbay.gelm.GelmActor
+
+class ExampleActor : GelmActor<ExampleCommand, ExampleInternalEvent>() {
+  override suspend fun execute(command: ExampleCommand): Flow<ExampleInternalEvent> = flow {
+    when (command) {
+      is ExampleCommand.StartLoading -> {
+        delay(3.seconds)
+        val list = mutableListOf<String>()
+        for (i in 1..Random.nextInt(1, 100)) {
+          list.add("${command.text} N $i")
+        }
+        emit(ExampleInternalEvent.LoadedData(list))
+      }
+    }
+  }
+}
+```
+
+By default all commands executes in `viewModelScope` with `Dispatchers.Default`. If you need another
+context use `withContext()` function.
+
+As a result of actor work `GelmStore` received flow of `InternalEvent`.
+
 ### GelmInternalReducer
+
+Optional entity. Internal reducer an entity responsible for handling internal events
+from `GelmActor`.
+
+### Modifier and ReducerResult
 
 ## Additional components
 
