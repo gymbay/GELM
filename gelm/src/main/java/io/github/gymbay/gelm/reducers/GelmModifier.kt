@@ -77,7 +77,7 @@ class Modifier<State, Effect, Command>(
      *
      * @param event The event will be sent to the observer.
      */
-    fun <ObserverEvent : Any> event(event: ObserverEvent) {
+    fun event(event: Any) {
         observersEvents.add(event)
     }
 

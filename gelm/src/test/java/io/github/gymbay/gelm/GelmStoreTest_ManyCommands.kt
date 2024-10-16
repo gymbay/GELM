@@ -3,8 +3,6 @@ package io.github.gymbay.gelm
 import io.github.gymbay.gelm.reducers.GelmExternalReducer
 import io.github.gymbay.gelm.reducers.GelmInternalReducer
 import io.github.gymbay.gelm.reducers.Modifier
-import io.github.gymbay.gelm.utils.EventType
-import io.github.gymbay.gelm.utils.GelmLogger
 import io.github.gymbay.gelm.utils.MainDispatcherRule
 import junit.framework.TestCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -33,11 +31,7 @@ class GelmStoreTest_ManyCommands : TestCase() {
             internalReducer = TestInternalReducer(),
             actor = TestActor(),
             commandsDispatcher = StandardTestDispatcher(testScheduler),
-            logger = object : GelmLogger {
-                override fun log(eventType: EventType, message: String) {
-                    println("$eventType = $message")
-                }
-            }
+            logger = { eventType, message -> println("$eventType = $message") }
         )
 
         advanceUntilIdle()

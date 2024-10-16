@@ -17,12 +17,12 @@ typealias ExampleStore = GelmStore<ExampleState, ExampleEffect, ExampleEvent, Ex
 
 fun createExampleStore(savedStateHandler: GelmSavedStateHandler<ExampleState>?): ExampleStore =
     GelmStore(
-    initialState = ExampleState(),
-    externalReducer = ExampleExternalReducer(),
-    actor = ExampleActor(),
-    internalReducer = ExampleInternalReducer(),
-    logger = GelmLogger { eventType, message ->
-        Log.d("COMPOSE_STORE", "$eventType|$message")
-    },
+        initialState = ExampleState(),
+        externalReducer = ExampleExternalReducer(),
+        actor = ExampleActor(),
+        internalReducer = ExampleInternalReducer(),
+        logger = GelmLogger { eventType, message ->
+            Log.d("COMPOSE_STORE", "$eventType|$message")
+        },
         savedStateHandler = savedStateHandler
-)
+    )
