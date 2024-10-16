@@ -31,7 +31,7 @@ build.gradle.kts file.
 
 ```kotlin
 dependencies {
-    implementation("io.github.gymbay:gelm:1.0.0")
+  implementation("io.github.gymbay:gelm:1.0.1")
 }
 ```
 

@@ -2,7 +2,7 @@ val libraryCompileSdk: Int = 34
 val libraryMinSdk: Int = 23
 val libraryGroupId = "io.github.gymbay"
 val libraryName = "gelm"
-val libraryVersion = "1.0.0"
+val libraryVersion = "1.0.1"
 
 plugins {
     alias(libs.plugins.androidLibrary)
