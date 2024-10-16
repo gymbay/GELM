@@ -1,6 +1,5 @@
-package ru.gymbay.gelm.app.example.store.components
+package io.github.gymbay.gelm.app.example.store.components
 
-import io.github.gymbay.gelm.app.example.store.components.ExampleExternalReducer
 import io.github.gymbay.gelm.app.example.store.models.ExampleCommand
 import io.github.gymbay.gelm.app.example.store.models.ExampleEvent
 import io.github.gymbay.gelm.app.example.store.models.ExampleState

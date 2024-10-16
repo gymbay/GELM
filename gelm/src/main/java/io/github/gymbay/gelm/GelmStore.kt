@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -108,7 +109,9 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
                 if (prevValue != result.state) {
                     logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
                 }
-                savedStateHandler?.saveState(result.state)
+                withContext(Dispatchers.Main) {
+                    savedStateHandler?.saveState(result.state)
+                }
                 result.state
             }
         }
