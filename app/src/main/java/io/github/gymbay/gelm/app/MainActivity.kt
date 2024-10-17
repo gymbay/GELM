@@ -9,10 +9,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.os.bundleOf
 import androidx.savedstate.SavedStateRegistry
-import io.github.gymbay.gelm.app.example.store.createExampleStore
+import io.github.gymbay.gelm.app.example.compose.ComposeScreenWithStateMachine
+import io.github.gymbay.gelm.app.example.store.createExampleStateMachineStore
 import io.github.gymbay.gelm.app.example.store.models.ExampleState
 import io.github.gymbay.gelm.utils.GelmSavedStateHandler
-import ru.gymbay.gelm.app.example.compose.ComposeScreen
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,8 +45,10 @@ class MainActivity : AppCompatActivity() {
                                 ?.getParcelable("state")
                         }
                     }
-                    val store = createExampleStore(savedStateHandler)
-                    ComposeScreen(store = store)
+//                    val store = createExampleStore(savedStateHandler)
+//                    ComposeScreen(store = store)
+                    val stateMachineStore = createExampleStateMachineStore()
+                    ComposeScreenWithStateMachine(store = stateMachineStore)
                 }
             }
         }
