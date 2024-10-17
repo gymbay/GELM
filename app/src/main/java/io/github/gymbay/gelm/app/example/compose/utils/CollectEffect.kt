@@ -1,4 +1,4 @@
-package ru.gymbay.gelm.app.example.compose.utils
+package io.github.gymbay.gelm.app.example.compose.utils
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
