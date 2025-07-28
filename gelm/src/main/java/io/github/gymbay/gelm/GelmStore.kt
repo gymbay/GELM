@@ -18,12 +18,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -56,6 +56,8 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
     private val savedStateHandler: GelmSavedStateHandler<State>? = null
 ) : ViewModel(), GelmObserver<Event>, GelmSubject {
 
+    private val stateMutex = Mutex()
+
     private val startedState: State = run {
         val restoredState = savedStateHandler?.restoreState(initialState)
         when {
@@ -86,8 +88,12 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
 
     init {
         logger?.log(EventType.InitialInvoked, "Initial state: ${startedState.toString()}")
-        val result = externalReducer.startProcessing(startedState)
-        handleReducerResult(result)
+        viewModelScope.launch {
+            stateMutex.withLock {
+                val result = externalReducer.startProcessing(startedState)
+                handleReducerResult(result)
+            }
+        }
     }
 
     /**
@@ -97,34 +103,31 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
      */
     override fun sendEvent(event: Event) {
         logger?.log(EventType.SendEventInvoked, "Event sent: ${event.toString()}")
-        val result = externalReducer.startProcessing(_state.value, event)
-        handleReducerResult(result)
+        viewModelScope.launch {
+            stateMutex.withLock {
+                val result = externalReducer.startProcessing(_state.value, event)
+                handleReducerResult(result)
+            }
+        }
     }
 
-    private fun handleReducerResult(result: ReducerResult<State, Effect, Command>) {
+    private suspend fun handleReducerResult(result: ReducerResult<State, Effect, Command>) {
         logger?.log(EventType.HandleResultInvoked, "Handle result started: $result")
 
-        viewModelScope.launch {
-            _state.update { prevValue ->
-                if (prevValue != result.state) {
-                    logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
-                }
-                withContext(Dispatchers.Main) {
-                    savedStateHandler?.saveState(result.state)
-                }
-                result.state
+        _state.update { prevValue ->
+            if (prevValue != result.state) {
+                logger?.log(EventType.StateEmitted, "State emitted: ${result.state.toString()}")
             }
+            savedStateHandler?.saveState(result.state)
+            result.state
         }
 
-        viewModelScope.launch {
-            result.effects.forEach {
-                _effect.emit(it)
-                logger?.log(EventType.EffectEmitted, "Effect emitted: ${it.toString()}")
-            }
+        result.effects.forEach {
+            _effect.emit(it)
+            logger?.log(EventType.EffectEmitted, "Effect emitted: ${it.toString()}")
         }
 
-        viewModelScope.launch(commandsDispatcher) {
-            val actor = actor ?: return@launch
+        if (actor != null) {
             for (command in result.cancelledCommands) {
                 activeCommandsPull.remove(command)?.cancel()
                 logger?.log(EventType.CommandCancelled, "Command cancelled: ${command.toString()}")
@@ -135,7 +138,7 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
                     logger?.log(EventType.CommandSkipped, "Command skipped: ${command.toString()}")
                     continue
                 }
-                val job = launch {
+                val job = viewModelScope.launch(commandsDispatcher) {
                     val flow = actor.execute(command)
                         .onCompletion {
                             activeCommandsPull.remove(command)
@@ -147,9 +150,11 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
 
                     flow.collect { actorEvent ->
                         if (internalReducer != null) {
-                            val newResult =
-                                internalReducer.startProcessing(_state.first(), actorEvent)
-                            handleReducerResult(newResult)
+                            stateMutex.withLock {
+                                val newResult =
+                                    internalReducer.startProcessing(_state.value, actorEvent)
+                                handleReducerResult(newResult)
+                            }
                         }
                     }
                 }
@@ -158,11 +163,9 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
             }
         }
 
-        viewModelScope.launch {
-            for (event in result.observersEvents) {
-                notify(event)
-                logger?.log(EventType.ObserverEventSent, "Observer event sent: $event")
-            }
+        for (event in result.observersEvents) {
+            notify(event)
+            logger?.log(EventType.ObserverEventSent, "Observer event sent: $event")
         }
     }
 
