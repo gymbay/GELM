@@ -1,4 +1,4 @@
-val libraryCompileSdk: Int = 34
+val libraryCompileSdk: Int = 35
 val libraryMinSdk: Int = 23
 val libraryGroupId = "io.github.gymbay"
 val libraryName = "gelm"
