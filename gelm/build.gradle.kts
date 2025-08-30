@@ -113,6 +113,22 @@ signing {
     sign(publishing.publications["release"])
 }
 
+/**
+ * Порядок публикации новой версии
+ *
+ * 1. Поднимаем версию в build.gradle в параметре libraryVersion
+ * 2. Генерируем ZIP архив проекта с помощьой generateUploadPackage
+ *    !!! Для генерации необходимо убедиться в наличии прописанных ключей в файле gelm/gradle.properties
+ *    !!! Убедиться что ключ валидный и опубликован через GPG Keychain
+ * 3. Достаем подготовленный ZIP архив из директории gelm/build/deploy-$libraryVersion
+ * 4. Авторизуемся в MavenCentral и загружаем архив в https://central.sonatype.com/publishing
+ *    !!! В поле Deployment Name указываем название библиотеки - gelm
+ *    !!! В поле Description можно указать описание релиза
+ *    !!! В Upload Your File выбираем архив из шага 3
+ * 5. После загрузки архива выполнится валидация
+ * 6. После успешной валидации появится кнопка Publish
+ * 7. Через некоторое время библиотека будет опубликована в maven central
+ **/
 tasks.register<Zip>("generateUploadPackage") {
     val publishTask = tasks.named(
         "publishReleasePublicationToMavenRepository",
