@@ -113,13 +113,28 @@ signing {
     sign(publishing.publications["release"])
 }
 
-tasks.register<Zip>("publishingZipArchive") {
+tasks.register<Zip>("generateUploadPackage") {
     val publishTask = tasks.named(
         "publishReleasePublicationToMavenRepository",
         PublishToMavenRepository::class.java
     )
     val paths = publishTask.map { it.repository.url }
     from(paths)
+    // Exclude maven-metadata.xml as Sonatype fails upload validation otherwise
+    exclude {
+        // Exclude left over directories not matching current version
+        // That was needed otherwise older versions empty directories would be include in our ZIP
+        if (it.file.isDirectory && it.path.matches(Regex(""".*\d+\.\d+.\d+$""")) && !it.path.contains(
+                libraryVersion
+            )
+        ) {
+            return@exclude true
+        }
+
+        // Only take files inside current version directory
+        // Notably excludes maven-metadata.xml which Maven Central upload validation does not like
+        (it.file.isFile && !it.path.contains(libraryVersion))
+    }
     into(layout.buildDirectory.get().toString()) {
         rename { name ->
             name.substringAfter("deploy-$libraryVersion")
