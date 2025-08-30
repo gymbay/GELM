@@ -1,8 +1,8 @@
-val libraryCompileSdk: Int = 34
+val libraryCompileSdk: Int = 35
 val libraryMinSdk: Int = 23
 val libraryGroupId = "io.github.gymbay"
 val libraryName = "gelm"
-val libraryVersion = "1.0.1"
+val libraryVersion = "1.1.0"
 
 plugins {
     alias(libs.plugins.androidLibrary)
@@ -113,13 +113,44 @@ signing {
     sign(publishing.publications["release"])
 }
 
-tasks.register<Zip>("publishingZipArchive") {
+/**
+ * Порядок публикации новой версии
+ *
+ * 1. Поднимаем версию в build.gradle в параметре libraryVersion
+ * 2. Генерируем ZIP архив проекта с помощьой generateUploadPackage
+ *    !!! Для генерации необходимо убедиться в наличии прописанных ключей в файле gelm/gradle.properties
+ *    !!! Убедиться что ключ валидный и опубликован через GPG Keychain
+ * 3. Достаем подготовленный ZIP архив из директории gelm/build/deploy-$libraryVersion
+ * 4. Авторизуемся в MavenCentral и загружаем архив в https://central.sonatype.com/publishing
+ *    !!! В поле Deployment Name указываем название библиотеки - gelm
+ *    !!! В поле Description можно указать описание релиза
+ *    !!! В Upload Your File выбираем архив из шага 3
+ * 5. После загрузки архива выполнится валидация
+ * 6. После успешной валидации появится кнопка Publish
+ * 7. Через некоторое время библиотека будет опубликована в maven central
+ **/
+tasks.register<Zip>("generateUploadPackage") {
     val publishTask = tasks.named(
         "publishReleasePublicationToMavenRepository",
         PublishToMavenRepository::class.java
     )
     val paths = publishTask.map { it.repository.url }
     from(paths)
+    // Exclude maven-metadata.xml as Sonatype fails upload validation otherwise
+    exclude {
+        // Exclude left over directories not matching current version
+        // That was needed otherwise older versions empty directories would be include in our ZIP
+        if (it.file.isDirectory && it.path.matches(Regex(""".*\d+\.\d+.\d+$""")) && !it.path.contains(
+                libraryVersion
+            )
+        ) {
+            return@exclude true
+        }
+
+        // Only take files inside current version directory
+        // Notably excludes maven-metadata.xml which Maven Central upload validation does not like
+        (it.file.isFile && !it.path.contains(libraryVersion))
+    }
     into(layout.buildDirectory.get().toString()) {
         rename { name ->
             name.substringAfter("deploy-$libraryVersion")
