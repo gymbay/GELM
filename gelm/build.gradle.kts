@@ -1,14 +1,42 @@
-val libraryCompileSdk: Int = 35
+val libraryCompileSdk: Int = 36
 val libraryMinSdk: Int = 23
 val libraryGroupId = "io.github.gymbay"
 val libraryName = "gelm"
-val libraryVersion = "1.1.0"
+val libraryVersion = "2.0.0"
 
 plugins {
+    alias(libs.plugins.jetbrainsKotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
     `maven-publish`
     signing
+}
+
+kotlin {
+    jvmToolchain(17)
+    androidTarget {
+        publishLibraryVariants("release")
+    }
+
+    iosX64()
+    iosArm64()
+    iosSimulatorArm64()
+
+    jvm()
+
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation(libs.coroutines.core)
+                implementation(libs.androidx.lifecycle.viewmodel)
+            }
+        }
+        val commonTest by getting {
+            dependencies {
+                implementation(libs.coroutines.test)
+                implementation(libs.kotlin.test)
+            }
+        }
+    }
 }
 
 android {
@@ -19,7 +47,7 @@ android {
         minSdk = libraryMinSdk
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles("consumer-rules.pro")
+        consumerProguardFiles("src/androidMain/consumer-rules.pro")
 
         aarMetadata {
             minCompileSdk = libraryMinSdk
@@ -42,9 +70,6 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.majorVersion
-    }
 
     publishing {
         singleVariant("release") {
@@ -54,29 +79,18 @@ android {
     }
 }
 
-dependencies {
-    implementation(libs.coroutines)
-    implementation(libs.androidx.lifecycle.viewmodel.ktx)
-
-    testImplementation(libs.junit)
-    testImplementation(libs.coroutines.test)
-}
-
 publishing {
     publications {
-        register<MavenPublication>("release") {
+        withType<MavenPublication> {
             groupId = libraryGroupId
-            artifactId = libraryName
+            artifactId = if (name == "kotlinMultiplatform") libraryName else "$libraryName-$name"
             version = libraryVersion
-
-            afterEvaluate {
-                from(components["release"])
-            }
 
             pom {
                 name = "GELM"
                 description = """
-                    The Android library for the popular architecture approach of ELM. 
+                    Kotlin Multiplatform (KMP) library for the ELM Architecture.
+                    Targets: Android, iOS, JVM.
                 """.trimIndent()
                 url = "https://github.com/gymbay/GELM"
                 inceptionYear = "2024"
@@ -110,7 +124,19 @@ publishing {
 }
 
 signing {
-    sign(publishing.publications["release"])
+    sign(publishing.publications)
+}
+
+// Javadoc JAR для JVM-публикации (требуется Maven Central).
+// Dokka Javadoc не поддерживает KMP, поэтому публикуем пустой JAR — Maven Central этого достаточно.
+val dokkaJavadocJar by tasks.registering(Jar::class) {
+    description = "Empty Javadoc JAR for gelm-jvm (Maven Central requirement)"
+    group = "documentation"
+    archiveClassifier.set("javadoc")
+}
+
+publishing.publications.withType<MavenPublication>().matching { it.name == "jvm" }.all {
+    artifact(dokkaJavadocJar)
 }
 
 /**
@@ -120,7 +146,7 @@ signing {
  * 2. Генерируем ZIP архив проекта с помощьой generateUploadPackage
  *    !!! Для генерации необходимо убедиться в наличии прописанных ключей в файле gelm/gradle.properties
  *    !!! Убедиться что ключ валидный и опубликован через GPG Keychain
- * 3. Достаем подготовленный ZIP архив из директории gelm/build/deploy-$libraryVersion
+ * 3. Достаем подготовленный ZIP архив из директории gelm/build/ (файл deploy-$libraryVersion.zip)
  * 4. Авторизуемся в MavenCentral и загружаем архив в https://central.sonatype.com/publishing
  *    !!! В поле Deployment Name указываем название библиотеки - gelm
  *    !!! В поле Description можно указать описание релиза
@@ -130,31 +156,11 @@ signing {
  * 7. Через некоторое время библиотека будет опубликована в maven central
  **/
 tasks.register<Zip>("generateUploadPackage") {
-    val publishTask = tasks.named(
-        "publishReleasePublicationToMavenRepository",
-        PublishToMavenRepository::class.java
-    )
-    val paths = publishTask.map { it.repository.url }
-    from(paths)
-    // Exclude maven-metadata.xml as Sonatype fails upload validation otherwise
-    exclude {
-        // Exclude left over directories not matching current version
-        // That was needed otherwise older versions empty directories would be include in our ZIP
-        if (it.file.isDirectory && it.path.matches(Regex(""".*\d+\.\d+.\d+$""")) && !it.path.contains(
-                libraryVersion
-            )
-        ) {
-            return@exclude true
-        }
+    dependsOn(tasks.withType<PublishToMavenRepository>())
+    from(layout.buildDirectory.dir("deploy-$libraryVersion")) {
+        exclude("**/maven-metadata.xml")
+    }
 
-        // Only take files inside current version directory
-        // Notably excludes maven-metadata.xml which Maven Central upload validation does not like
-        (it.file.isFile && !it.path.contains(libraryVersion))
-    }
-    into(layout.buildDirectory.get().toString()) {
-        rename { name ->
-            name.substringAfter("deploy-$libraryVersion")
-        }
-    }
     archiveFileName.set("deploy-$libraryVersion.zip")
+    destinationDirectory.set(layout.buildDirectory)
 }

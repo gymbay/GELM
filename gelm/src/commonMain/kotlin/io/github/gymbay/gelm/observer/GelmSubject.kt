@@ -29,6 +29,7 @@ interface GelmSubject : GelmSubjectActions {
      *
      * @param event Event for notifying.
      */
+    @Suppress("UNCHECKED_CAST")
     fun <T> notify(event: T) {
         for (observer in observers) {
             (observer as? GelmObserver<T>)?.sendEvent(event)

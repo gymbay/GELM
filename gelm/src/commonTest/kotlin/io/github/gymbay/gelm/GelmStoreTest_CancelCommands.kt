@@ -3,8 +3,7 @@ package io.github.gymbay.gelm
 import io.github.gymbay.gelm.reducers.GelmExternalReducer
 import io.github.gymbay.gelm.reducers.GelmInternalReducer
 import io.github.gymbay.gelm.reducers.Modifier
-import io.github.gymbay.gelm.utils.MainDispatcherRule
-import junit.framework.TestCase
+import io.github.gymbay.gelm.utils.withMainDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -12,35 +11,31 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(JUnit4::class)
-class GelmStoreTest_CancelCommands : TestCase() {
-
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+class GelmStoreTest_CancelCommands {
 
     @Test
     fun testCancelCommands() = runTest {
-        val store = GelmStore(
-            initialState = State(),
-            externalReducer = TestExternalReducer(),
-            internalReducer = TestInternalReducer(),
-            actor = TestActor(),
-            commandsDispatcher = StandardTestDispatcher(testScheduler)
-        )
+        withMainDispatcher(StandardTestDispatcher(testScheduler)) {
+            val store = GelmStore(
+                initialState = State(),
+                externalReducer = TestExternalReducer(),
+                internalReducer = TestInternalReducer(),
+                actor = TestActor(),
+                commandsDispatcher = StandardTestDispatcher(testScheduler)
+            )
 
-        store.sendEvent(Event.PlanJobs)
-        advanceTimeBy(1.seconds)
-        store.sendEvent(Event.CancelSomePlannedJob)
-        advanceTimeBy(3.seconds)
+            store.sendEvent(Event.PlanJobs)
+            advanceTimeBy(1.seconds)
+            store.sendEvent(Event.CancelSomePlannedJob)
+            advanceTimeBy(3.seconds)
 
-        assertEquals(State(title = "second"), store.state.first())
+            assertEquals(State(title = "second"), store.state.first())
+        }
     }
 
     private data class State(
@@ -70,6 +65,7 @@ class GelmStoreTest_CancelCommands : TestCase() {
                     command(Command.Second)
                     command(Command.Third)
                 }
+
                 Event.CancelSomePlannedJob -> {
                     cancelCommand(Command.First)
                     cancelCommand(Command.Third)
@@ -89,7 +85,8 @@ class GelmStoreTest_CancelCommands : TestCase() {
         }
     }
 
-    private class TestInternalReducer : GelmInternalReducer<InternalEvent, State, Nothing, Command>() {
+    private class TestInternalReducer :
+        GelmInternalReducer<InternalEvent, State, Nothing, Command>() {
         override fun Modifier<State, Nothing, Command>.processInternalEvent(
             currentState: State,
             internalEvent: InternalEvent
@@ -99,5 +96,4 @@ class GelmStoreTest_CancelCommands : TestCase() {
             }
         }
     }
-
 }

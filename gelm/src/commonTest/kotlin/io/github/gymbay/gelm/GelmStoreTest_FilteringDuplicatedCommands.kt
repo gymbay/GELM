@@ -3,8 +3,7 @@ package io.github.gymbay.gelm
 import io.github.gymbay.gelm.reducers.GelmExternalReducer
 import io.github.gymbay.gelm.reducers.GelmInternalReducer
 import io.github.gymbay.gelm.reducers.Modifier
-import io.github.gymbay.gelm.utils.MainDispatcherRule
-import junit.framework.TestCase
+import io.github.gymbay.gelm.utils.withMainDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -12,38 +11,34 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(JUnit4::class)
-class GelmStoreTest_FilteringDuplicatedCommands : TestCase() {
-
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+class GelmStoreTest_FilteringDuplicatedCommands {
 
     @Test
     fun testCancelledJob() = runTest {
-        val store = GelmStore(
-            initialState = State(),
-            externalReducer = TestExternalReducer(),
-            internalReducer = TestInternalReducer(),
-            actor = TestActor(),
-            commandsDispatcher = StandardTestDispatcher(testScheduler)
-        )
+        withMainDispatcher(StandardTestDispatcher(testScheduler)) {
+            val store = GelmStore(
+                initialState = State(),
+                externalReducer = TestExternalReducer(),
+                internalReducer = TestInternalReducer(),
+                actor = TestActor(),
+                commandsDispatcher = StandardTestDispatcher(testScheduler)
+            )
 
-        store.sendEvent(Event.StartLoading)
-        advanceTimeBy(200.milliseconds)
-        store.sendEvent(Event.StartLoading)
-        advanceTimeBy(200.milliseconds)
-        store.sendEvent(Event.StartLoading)
-        advanceTimeBy(5.seconds)
+            store.sendEvent(Event.StartLoading)
+            advanceTimeBy(200.milliseconds)
+            store.sendEvent(Event.StartLoading)
+            advanceTimeBy(200.milliseconds)
+            store.sendEvent(Event.StartLoading)
+            advanceTimeBy(5.seconds)
 
-        assertEquals(State(loadedCount = 1), store.state.first())
+            assertEquals(State(loadedCount = 1), store.state.first())
+        }
     }
 
     private data class State(
@@ -84,7 +79,8 @@ class GelmStoreTest_FilteringDuplicatedCommands : TestCase() {
         }
     }
 
-    private class TestInternalReducer : GelmInternalReducer<InternalEvent, State, Nothing, Command>() {
+    private class TestInternalReducer :
+        GelmInternalReducer<InternalEvent, State, Nothing, Command>() {
         override fun Modifier<State, Nothing, Command>.processInternalEvent(
             currentState: State,
             internalEvent: InternalEvent
@@ -97,5 +93,4 @@ class GelmStoreTest_FilteringDuplicatedCommands : TestCase() {
             }
         }
     }
-
 }

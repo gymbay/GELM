@@ -3,8 +3,7 @@ package io.github.gymbay.gelm
 import io.github.gymbay.gelm.reducers.GelmExternalReducer
 import io.github.gymbay.gelm.reducers.GelmInternalReducer
 import io.github.gymbay.gelm.reducers.Modifier
-import io.github.gymbay.gelm.utils.MainDispatcherRule
-import junit.framework.TestCase
+import io.github.gymbay.gelm.utils.withMainDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
@@ -12,45 +11,42 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(JUnit4::class)
-class GelmStoreTest_ParallelSendEvent : TestCase() {
-
-    val testDispatcher = StandardTestDispatcher()
-
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule(testDispatcher)
+class GelmStoreTest_ParallelSendEvent {
 
     @Test
-    fun testParallelSendEvents() = runTest(testDispatcher) {
-        val store = GelmStore(
-            initialState = State(),
-            externalReducer = TestExternalReducer(),
-            internalReducer = TestInternalReducer(),
-            actor = TestActor(),
-            commandsDispatcher = testDispatcher
-        )
+    fun testParallelSendEvents() {
+        val testDispatcher = StandardTestDispatcher()
+        runTest(testDispatcher) {
+            withMainDispatcher(testDispatcher) {
+                val store = GelmStore(
+                    initialState = State(),
+                    externalReducer = TestExternalReducer(),
+                    internalReducer = TestInternalReducer(),
+                    actor = TestActor(),
+                    commandsDispatcher = testDispatcher
+                )
 
-        coroutineScope {
-            store.sendEvent(Event.SecondEvent)
-        }
-        coroutineScope {
-            store.sendEvent(Event.FirstEvent)
-        }
-        coroutineScope {
-            store.sendEvent(Event.ThirdEvent)
-        }
-        advanceUntilIdle()
+                coroutineScope {
+                    store.sendEvent(Event.SecondEvent)
+                }
+                coroutineScope {
+                    store.sendEvent(Event.FirstEvent)
+                }
+                coroutineScope {
+                    store.sendEvent(Event.ThirdEvent)
+                }
+                advanceUntilIdle()
 
-        assertEquals(
-            State(field1 = "FirstEvent", field2 = "SecondEvent", field3 = "ThirdEvent"),
-            store.state.first()
-        )
+                assertEquals(
+                    State(field1 = "FirstEvent", field2 = "SecondEvent", field3 = "ThirdEvent"),
+                    store.state.first()
+                )
+            }
+        }
     }
 
     private data class State(
@@ -113,5 +109,4 @@ class GelmStoreTest_ParallelSendEvent : TestCase() {
             }
         }
     }
-
 }
