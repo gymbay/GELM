@@ -127,6 +127,18 @@ signing {
     sign(publishing.publications)
 }
 
+// Javadoc JAR для JVM-публикации (требуется Maven Central).
+// Dokka Javadoc не поддерживает KMP, поэтому публикуем пустой JAR — Maven Central этого достаточно.
+val dokkaJavadocJar by tasks.registering(Jar::class) {
+    description = "Empty Javadoc JAR for gelm-jvm (Maven Central requirement)"
+    group = "documentation"
+    archiveClassifier.set("javadoc")
+}
+
+publishing.publications.withType<MavenPublication>().matching { it.name == "jvm" }.all {
+    artifact(dokkaJavadocJar)
+}
+
 /**
  * Порядок публикации новой версии
  *
