@@ -1,37 +1,66 @@
 # General
 
-GELM is Android library for the popular presentation approach The ELM Architecture (TEA).
+GELM is a **Kotlin Multiplatform (KMP)** library for the popular presentation approach The ELM
+Architecture (TEA).
+
+**Targets:** Android, iOS, JVM.
 
 The library standardizes the work with sending and processing synchronous and asynchronous events.
 All inputs and outputs to library are strictly defined, which makes it easier to develop and test.
+
+**Version:** 2.0.0.  
+**Transitive dependency:** `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel` (KMP ViewModel).  
+Minimum Kotlin 2.1.x; AGP 8.x. **Android:** compileSdk/targetSdk 36, minSdk 23. For Compose projects
+with Kotlin 2.0+,
+the [Compose Compiler plugin](https://plugins.gradle.org/plugin/org.jetbrains.kotlin.plugin.compose)
+is required in app modules.
+
+**When conflicting with `androidx.lifecycle`** in your app (e.g. a different ViewModel version), you
+can exclude GELM’s transitive dependency on lifecycle and add the desired version manually:
+
+```kotlin
+implementation("io.github.gymbay:gelm:2.0.0") {
+    exclude(group = "org.jetbrains.androidx.lifecycle", module = "lifecycle-viewmodel")
+}
+// then add your preferred version explicitly if needed
+implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:...")
+```
 
 ### Gelm architecture schema
 ![Gelm schema](/gelm_schema.jpg)
 
 # How to implement (Gradle)
 
-Library publicated in Maven Central repository, so you need first define Maven Central repository in
-your settings.gradle.kts file.
+Library is published to Maven Central. Add Maven Central to your `settings.gradle.kts`:
 
 ```kotlin
 pluginManagement {
     repositories {
         mavenCentral()
+        google()  // for Android projects
     }
 }
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
+        google()  // for Android projects
     }
 }
 ```
 
-When you defined Maven Central then you need define library in your application module in
-build.gradle.kts file.
+Then add the dependency in your module's `build.gradle.kts`:
+
+- **Android:** `implementation("io.github.gymbay:gelm:2.0.0")` — Gradle will resolve the Android
+  variant.
+- **iOS (KMP):** the same artifact `io.github.gymbay:gelm:2.0.0` — use the iOS source set of the
+  library.
+- **JVM:** `implementation("io.github.gymbay:gelm:2.0.0")` — JVM variant.
+
+Example (Android app):
 
 ```kotlin
 dependencies {
-  implementation("io.github.gymbay:gelm:1.1.0")
+    implementation("io.github.gymbay:gelm:2.0.0")
 }
 ```
 
@@ -44,22 +73,25 @@ This guide helps you to understand how library works.
 Library works with 5 generic types, some types may be optional.
 Optional types can be defined as Kotlin Nothing type.
 
-All types applied in [GelmStore](gelm/src/main/java/io/github/gymbay/gelm/GelmStore.kt).
+All types applied in [GelmStore](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/GelmStore.kt).
 
 - **State** (required) - UI representation as some Kotlin type. In general is Data class;
 - **Effect** (optional) - one shot event. As example, showing alert in Android view, start timer,
   trigger navigation.
   In general is Enum class;
 - **Event** (optional) - some external event
-  for [GelmStore](gelm/src/main/java/io/github/gymbay/gelm/GelmStore.kt).
+  for [GelmStore](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/GelmStore.kt).
   As example, user initiated event from UI, event from
-  another [GelmStore](gelm/src/main/java/io/github/gymbay/gelm/GelmStore.kt). In general is Sealed
+  another [GelmStore](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/GelmStore.kt). In general is
+  Sealed
   or Enum class;
 - **Command** (optional) - internal async command
-  for [GelmActor](gelm/src/main/java/io/github/gymbay/gelm/GelmActor.kt). May be produced from
+  for [GelmActor](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/GelmActor.kt). May be produced
+  from
   external and internal reducer. In example, command for load data from server or save to database;
 - **InternalEvent** (optional) - some event from
-  internal [GelmActor](gelm/src/main/java/io/github/gymbay/gelm/GelmActor.kt). As example, response
+  internal [GelmActor](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/GelmActor.kt). As example,
+  response
   from server or database.
 
 ## Main components
@@ -68,13 +100,14 @@ Gelm works with 4 main and 2 additional components. In main components only 2 re
 optional.
 
 Minimum work configuration
-required [GelmStore](gelm/src/main/java/io/github/gymbay/gelm/GelmStore.kt)
-and [GelmExternalReducer](gelm/src/main/java/io/github/gymbay/gelm/reducers/GelmExternalReducer.kt).
+required [GelmStore](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/GelmStore.kt)
+and [GelmExternalReducer](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/reducers/GelmExternalReducer.kt).
 
 ### GelmStore
 
 Central entity for GELM architecture. Holder for architecture components. Responsible for coordinate
-flow of external and internal events. Inherited from `ViewModel` android architecture component.
+flow of external and internal events. Inherited from `ViewModel` (KMP:
+`org.jetbrains.androidx.lifecycle:lifecycle-viewmodel`).
 
 ```kotlin
 import io.github.gymbay.gelm.utils.GelmStore
@@ -272,8 +305,8 @@ immutable, state mutations accumulates in `Modifier`.
 
 ### Modifier and ReducerResult
 
-[Modifier](gelm/src/main/java/io/github/gymbay/gelm/reducers/GelmModifier.kt) and
-[ReducerResult](gelm/src/main/java/io/github/gymbay/gelm/reducers/ReducerResult.kt)
+[Modifier](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/reducers/GelmModifier.kt) and
+[ReducerResult](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/reducers/ReducerResult.kt)
 is a core classes for reducers used in processing events functions.
 
 `Modifier` provides functions for state changing, produce effects, commands, events to subscribed
@@ -424,7 +457,7 @@ assertEquals(DelegationState(title = newTitle), delegationStore.state.first())
 ### GelmSavedStateHandler
 
 If you need your `State` to survive the system process death event,
-use [GelmSavedStateHandler](gelm/src/main/java/io/github/gymbay/gelm/utils/GelmSavedStateHandler.kt)
+use [GelmSavedStateHandler](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/utils/GelmSavedStateHandler.kt)
 interface.
 
 `GelmSavedStateHandler` interface provides two functions:
@@ -457,7 +490,7 @@ GelmStore(
 ### GelmLogger
 
 For debugging might be useful
-using [GelmLogger](gelm/src/main/java/io/github/gymbay/gelm/utils/GelmLogger.kt).
+using [GelmLogger](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/utils/GelmLogger.kt).
 `GelmLogger` provides `log(eventType: EventType, message: String)` function for log `GelmStore`
 lifecycle events.
 You can use standard log output or analytics in overrides of log function.
@@ -471,7 +504,7 @@ GelmStore(
 ```
 
 Now `GelmLogger` supports
-10 [EventTypes](gelm/src/main/java/io/github/gymbay/gelm/utils/GelmLogger.kt). Name of event
+10 [EventTypes](gelm/src/commonMain/kotlin/io/github/gymbay/gelm/utils/GelmLogger.kt). Name of event
 determine what will be logged.
 
 # How to test
@@ -571,3 +604,35 @@ We need to invoke `execute()` with specific variant of `Command` (input) and the
 events from `Flow` (output).
 
 Thus, you need to consistently check all `Commands` and resulting events for a full covered test.
+
+# iOS demo
+
+The project includes an iOS demo module `iosDemo` that consumes GELM on iOS (Kotlin/Native). It
+shows the same usage pattern as the Android app: store creation, state/effect subscription, sending
+events.
+
+**Requirements:** Xcode, macOS, Kotlin/Native toolchain (installed by Gradle).
+
+**Run:** Build iOS framework: `./gradlew :iosDemo:linkReleaseFrameworkIosArm64` (device) or
+`:iosDemo:linkReleaseFrameworkIosSimulatorArm64` (simulator). To run on simulator/device, use Xcode
+with the iOS app target.
+
+# Build verification (KMP)
+
+To verify all targets and the app build:
+
+```bash
+# Library: all targets
+./gradlew :gelm:compileReleaseKotlinAndroid :gelm:compileKotlinJvm :gelm:compileKotlinIosArm64 :gelm:compileKotlinIosX64
+
+# Unit tests (Android)
+./gradlew :gelm:testDebugUnitTest :gelm:testReleaseUnitTest
+
+# Android app
+./gradlew :app:assembleDebug
+
+# iOS demo (framework)
+./gradlew :iosDemo:linkReleaseFrameworkIosArm64
+```
+
+Full build: `./gradlew :gelm:build :app:assembleDebug`

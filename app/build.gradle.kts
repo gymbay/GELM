@@ -1,17 +1,18 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.jetbrainsKotlinAndroid)
+    alias(libs.plugins.jetbrainsKotlinComposeCompiler)
     id("kotlin-parcelize")
 }
 
 android {
     namespace = "io.github.gymbay.gelm.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.gymbay.gelm.app"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -39,9 +40,6 @@ android {
     }
     buildFeatures {
         compose = true
-    }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
         resources {

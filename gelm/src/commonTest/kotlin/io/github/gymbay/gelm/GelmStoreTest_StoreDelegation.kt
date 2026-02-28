@@ -2,45 +2,42 @@ package io.github.gymbay.gelm
 
 import io.github.gymbay.gelm.reducers.GelmExternalReducer
 import io.github.gymbay.gelm.reducers.Modifier
-import io.github.gymbay.gelm.utils.MainDispatcherRule
-import junit.framework.TestCase
+import io.github.gymbay.gelm.utils.withMainDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
-import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RunWith(JUnit4::class)
-class GelmStoreTest_StoreDelegation : TestCase() {
-
-    @get:Rule
-    val mainDispatcherRule = MainDispatcherRule()
+class GelmStoreTest_StoreDelegation {
 
     @Test
     fun testStoreDelegation() = runTest {
-        val initialStore = GelmStore<Unit, Nothing, InitialEvent, Nothing, Nothing>(
-            initialState = Unit,
-            externalReducer = InitialExternalReducer(),
-            commandsDispatcher = StandardTestDispatcher(testScheduler)
-        )
+        withMainDispatcher(StandardTestDispatcher(testScheduler)) {
+            val initialStore = GelmStore<Unit, Nothing, InitialEvent, Nothing, Nothing>(
+                initialState = Unit,
+                externalReducer = InitialExternalReducer(),
+                commandsDispatcher = StandardTestDispatcher(testScheduler)
+            )
 
-        val delegationStore = GelmStore<DelegationState, Nothing, DelegationEvent, Nothing, Nothing>(
-            initialState = DelegationState(),
-            externalReducer = DelegationExternalReducer(),
-        )
+            val delegationStore =
+                GelmStore<DelegationState, Nothing, DelegationEvent, Nothing, Nothing>(
+                    initialState = DelegationState(),
+                    externalReducer = DelegationExternalReducer(),
+                )
 
-        initialStore.subscribe(delegationStore)
-        assertNull(delegationStore.state.first().title)
+            initialStore.subscribe(delegationStore)
+            assertNull(delegationStore.state.first().title)
 
-        val newTitle = "initial"
-        initialStore.sendEvent(InitialEvent.StartDelegation(title = newTitle))
-        advanceUntilIdle()
-        assertEquals(DelegationState(title = newTitle), delegationStore.state.first())
+            val newTitle = "initial"
+            initialStore.sendEvent(InitialEvent.StartDelegation(title = newTitle))
+            advanceUntilIdle()
+            assertEquals(DelegationState(title = newTitle), delegationStore.state.first())
+        }
     }
 
     private sealed interface InitialEvent {
@@ -67,7 +64,8 @@ class GelmStoreTest_StoreDelegation : TestCase() {
         data class Data(val title: String) : DelegationEvent
     }
 
-    private class DelegationExternalReducer : GelmExternalReducer<DelegationEvent, DelegationState, Nothing, Nothing>() {
+    private class DelegationExternalReducer :
+        GelmExternalReducer<DelegationEvent, DelegationState, Nothing, Nothing>() {
         override fun Modifier<DelegationState, Nothing, Nothing>.processEvent(
             currentState: DelegationState,
             event: DelegationEvent
@@ -77,5 +75,4 @@ class GelmStoreTest_StoreDelegation : TestCase() {
             }
         }
     }
-
 }

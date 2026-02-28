@@ -24,7 +24,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Central entity for GELM architecture.
@@ -83,7 +82,8 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
 
     private val _effect: MutableSharedFlow<Effect> = MutableSharedFlow(replay = effectsReplayCache)
 
-    private val activeCommandsPull: MutableMap<Command, Job> by lazy { ConcurrentHashMap() }
+    private val activeCommandsMutex = Mutex()
+    private val activeCommandsPull: MutableMap<Command, Job> = mutableMapOf()
     override val observers: MutableList<GelmObserver<*>> by lazy { mutableListOf() }
 
     init {
@@ -128,20 +128,22 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
         }
 
         if (actor != null) {
+            val toCancel = activeCommandsMutex.withLock {
+                result.cancelledCommands.mapNotNull { command ->
+                    activeCommandsPull.remove(command)
+                }
+            }
+            toCancel.forEach { it.cancel() }
             for (command in result.cancelledCommands) {
-                activeCommandsPull.remove(command)?.cancel()
                 logger?.log(EventType.CommandCancelled, "Command cancelled: ${command.toString()}")
             }
             for (command in result.commands) {
-                // filtering duplicating active job
-                if (activeCommandsPull.containsKey(command)) {
-                    logger?.log(EventType.CommandSkipped, "Command skipped: ${command.toString()}")
-                    continue
-                }
                 val job = viewModelScope.launch(commandsDispatcher) {
                     val flow = actor.execute(command)
                         .onCompletion {
-                            activeCommandsPull.remove(command)
+                            activeCommandsMutex.withLock {
+                                activeCommandsPull.remove(command)
+                            }
                             logger?.log(
                                 EventType.CommandCompleted,
                                 "Command completed: ${command.toString()}"
@@ -158,8 +160,19 @@ class GelmStore<State, Effect, Event, InternalEvent, Command>(
                         }
                     }
                 }
-                activeCommandsPull[command] = job
-                logger?.log(EventType.CommandStarted, "Command started: ${command.toString()}")
+                val added = activeCommandsMutex.withLock {
+                    if (activeCommandsPull.containsKey(command)) false
+                    else {
+                        activeCommandsPull[command] = job
+                        true
+                    }
+                }
+                if (!added) {
+                    job.cancel()
+                    logger?.log(EventType.CommandSkipped, "Command skipped: ${command.toString()}")
+                } else {
+                    logger?.log(EventType.CommandStarted, "Command started: ${command.toString()}")
+                }
             }
         }
 
