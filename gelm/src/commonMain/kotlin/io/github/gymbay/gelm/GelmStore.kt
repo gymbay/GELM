@@ -30,6 +30,45 @@ import kotlinx.coroutines.sync.withLock
  * Holder for architecture components.
  * Responsible for coordinate flow of external and internal events.
  *
+ * `GelmStore` is an `open` class, so an application can declare a concrete named subclass for
+ * a screen or a feature. A subclass adds only a distinct runtime type: event handling, state and
+ * effect publication, command execution, and reducer orchestration remain final and cannot be
+ * overridden.
+ *
+ * Both the five-type-parameter class and the four-type-parameter `GelmStore` alias from
+ * `io.github.gymbay.gelm.utils` can be used as a supertype. The alias expands to
+ * `GelmStore<State, Effect, Event, Nothing, Command>`, so it is suitable for stores without
+ * internal events; use the five-type-parameter class when an actor and internal reducer are
+ * needed.
+ *
+ * The alias itself does not create a distinct runtime type; the concrete subclass does. A generic
+ * application base class also maps to a single runtime class, so declare one non-generic concrete
+ * class per store when distinct ViewModel or dependency-injection keys are required.
+ *
+ * Example with the four-type-parameter alias:
+ * ```
+ * import io.github.gymbay.gelm.utils.GelmStore
+ *
+ * class LoginStore : GelmStore<LoginState, LoginEffect, LoginEvent, LoginCommand>(
+ *     initialState = LoginState(),
+ *     externalReducer = LoginExternalReducer(),
+ * )
+ * ```
+ *
+ * Example with the five-type-parameter class:
+ * ```
+ * import io.github.gymbay.gelm.GelmStore
+ *
+ * class ProfileStore : GelmStore<
+ *     ProfileState, ProfileEffect, ProfileEvent, ProfileInternalEvent, ProfileCommand
+ * >(
+ *     initialState = ProfileState(),
+ *     externalReducer = ProfileExternalReducer(),
+ *     actor = ProfileActor(),
+ *     internalReducer = ProfileInternalReducer(),
+ * )
+ * ```
+ *
  * @param initialState Started point of screen state. Generally it looks like State().
  * @param externalReducer Reducer for processing external [Event] sent by [GelmStore.sendEvent].
  * @param actor Entity for processing asynchronous [Command] from [externalReducer] or [internalReducer].
@@ -44,7 +83,7 @@ import kotlinx.coroutines.sync.withLock
  * @property effect Reactive one-shot events, stateless.
  * If no subscribers when event happens, it will be stored and replay to new subscriber.
  */
-class GelmStore<State, Effect, Event, InternalEvent, Command>(
+open class GelmStore<State, Effect, Event, InternalEvent, Command>(
     initialState: State,
     private val externalReducer: GelmExternalReducer<Event, State, Effect, Command>,
     private val actor: GelmActor<Command, InternalEvent>? = null,

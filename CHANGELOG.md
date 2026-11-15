@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Named store subclasses:** `GelmStore` is now `open`, so an application can declare a concrete
+  class per screen or feature. Each subclass has its own runtime class, allowing Koin definitions
+  and Navigation 3 `ViewModelProvider` lookups to keep different stores apart. Store behavior
+  (`sendEvent`, state and effect publication, reducers, actor) remains final; direct creation and
+  the four-type-parameter `typealias` keep working unchanged.
+- **Store inheritance paths:** both the five-type-parameter `GelmStore` class and the
+  four-type-parameter `io.github.gymbay.gelm.utils.GelmStore` alias can be used as a supertype. The
+  alias fixes `InternalEvent` to `Nothing`; the five-type-parameter class is required when an actor
+  and internal reducer are used. README, KDoc, tests, and the demo show both paths.
+
 ## [2.0.0] - 2025-02-26
 
 ### Added

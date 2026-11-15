@@ -12,16 +12,23 @@ import io.github.gymbay.gelm.app.example.store.models.ExampleInternalEvent
 import io.github.gymbay.gelm.app.example.store.models.ExampleState
 import io.github.gymbay.gelm.utils.GelmSavedStateHandler
 
-typealias ExampleStore = GelmStore<ExampleState, ExampleEffect, ExampleEvent, ExampleInternalEvent, ExampleCommand>
+/**
+ * Demo of a store inherited through the full five-type-parameter [GelmStore] class.
+ *
+ * It uses an actor and an internal reducer, so `InternalEvent` is [ExampleInternalEvent].
+ */
+class ExampleStore(
+    savedStateHandler: GelmSavedStateHandler<ExampleState>? = null,
+) : GelmStore<ExampleState, ExampleEffect, ExampleEvent, ExampleInternalEvent, ExampleCommand>(
+    initialState = ExampleState(),
+    externalReducer = ExampleExternalReducer(),
+    actor = ExampleActor(),
+    internalReducer = ExampleInternalReducer(),
+    logger = { eventType, message ->
+        Log.d("COMPOSE_STORE", "$eventType|$message")
+    },
+    savedStateHandler = savedStateHandler,
+)
 
 fun createExampleStore(savedStateHandler: GelmSavedStateHandler<ExampleState>?): ExampleStore =
-    GelmStore(
-        initialState = ExampleState(),
-        externalReducer = ExampleExternalReducer(),
-        actor = ExampleActor(),
-        internalReducer = ExampleInternalReducer(),
-        logger = { eventType, message ->
-            Log.d("COMPOSE_STORE", "$eventType|$message")
-        },
-        savedStateHandler = savedStateHandler
-    )
+    ExampleStore(savedStateHandler)

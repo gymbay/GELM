@@ -26,8 +26,8 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(libs.coroutines.core)
-                implementation(libs.androidx.lifecycle.viewmodel)
+                api(libs.coroutines.core)
+                api(libs.androidx.lifecycle.viewmodel)
             }
         }
         val commonTest by getting {

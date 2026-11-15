@@ -9,14 +9,19 @@ The library standardizes the work with sending and processing synchronous and as
 All inputs and outputs to library are strictly defined, which makes it easier to develop and test.
 
 **Version:** 2.0.0.  
-**Transitive dependency:** `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel` (KMP ViewModel).  
+**Compile-time dependencies:** `org.jetbrains.androidx.lifecycle:lifecycle-viewmodel` (KMP
+ViewModel) and `org.jetbrains.kotlinx:kotlinx-coroutines-core`. Published Gradle module metadata
+exposes both dependencies in the API (compile) variants, and platform POMs use compile scope.
+`ViewModel`, `Flow`, `StateFlow`, and `CoroutineDispatcher` are part of GELM’s public API, so a
+named store subclass compiles without adding these dependencies separately.  
 Minimum Kotlin 2.1.x; AGP 8.x. **Android:** compileSdk/targetSdk 36, minSdk 23. For Compose projects
 with Kotlin 2.0+,
 the [Compose Compiler plugin](https://plugins.gradle.org/plugin/org.jetbrains.kotlin.plugin.compose)
 is required in app modules.
 
-**When conflicting with `androidx.lifecycle`** in your app (e.g. a different ViewModel version), you
-can exclude GELM’s transitive dependency on lifecycle and add the desired version manually:
+**Overriding the lifecycle version.** When conflicting with `androidx.lifecycle` in your app (e.g. a
+different ViewModel version), exclude GELM’s transitive dependency and add the desired version
+manually:
 
 ```kotlin
 implementation("io.github.gymbay:gelm:2.0.0") {
@@ -25,6 +30,19 @@ implementation("io.github.gymbay:gelm:2.0.0") {
 // then add your preferred version explicitly if needed
 implementation("org.jetbrains.androidx.lifecycle:lifecycle-viewmodel:...")
 ```
+
+**Overriding the coroutines version.** Exclude `kotlinx-coroutines-core` the same way:
+
+```kotlin
+implementation("io.github.gymbay:gelm:2.0.0") {
+    exclude(group = "org.jetbrains.kotlinx", module = "kotlinx-coroutines-core")
+}
+// then add your preferred version explicitly if needed
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:...")
+```
+
+The exclusions apply to both compile-time and runtime classpaths. If you exclude either dependency,
+add the replacement explicitly so that GELM’s public types remain available at compile time.
 
 ### Gelm architecture schema
 ![Gelm schema](/gelm_schema.jpg)
@@ -119,6 +137,9 @@ GelmStore(
 )
 ```
 
+For Koin, Navigation 3, or multiple stores in one `ViewModelStore`, use a concrete named subclass
+instead. See [Named store subclasses](#named-store-subclasses).
+
 You can pass `Events` from UI to `GelmStore` using `sendEvent(event: Event)` function. All that
 event
 will be handled by `GelmExternalReducer`.
@@ -167,6 +188,103 @@ CollectEffect(store.effect) { effect ->
   }
 }
 ```
+
+#### Named store subclasses
+
+Koin and Navigation 3 distinguish ViewModels by their runtime class. A `typealias` does not create a
+new runtime type, so declare a concrete named subclass for each screen or feature when the store
+must have its own ViewModel or dependency-injection key.
+
+There are two inheritance paths.
+
+**Stores without internal events: the four-type-parameter alias**
+
+```kotlin
+import io.github.gymbay.gelm.utils.GelmStore
+import io.github.gymbay.gelm.reducers.GelmExternalReducer
+
+class LoginStore : GelmStore<LoginState, LoginEffect, LoginEvent, Nothing>(
+    initialState = LoginState(),
+    externalReducer = LoginExternalReducer(),
+)
+
+class LoginExternalReducer :
+    GelmExternalReducer<LoginEvent, LoginState, LoginEffect, Nothing>() {
+    // processInit / processEvent
+}
+```
+
+The alias expands to `GelmStore<State, Effect, Event, Nothing, Command>`, so `InternalEvent` is
+fixed to `Nothing` and the store has no actor or internal reducer.
+
+**Stores with internal events: the five-type-parameter class**
+
+```kotlin
+import io.github.gymbay.gelm.GelmStore
+
+class ProfileStore : GelmStore<
+    ProfileState, ProfileEffect, ProfileEvent, ProfileInternalEvent, ProfileCommand
+>(
+    initialState = ProfileState(),
+    externalReducer = ProfileExternalReducer(),
+    actor = ProfileActor(),
+    internalReducer = ProfileInternalReducer(),
+)
+```
+
+The five-type-parameter class is required when an actor and internal reducer are used.
+
+Both forms can be used as a supertype. The typealias itself does not create a distinct runtime type;
+the concrete subclass does. A generic application base class also maps to a single runtime class, so
+declare one non-generic concrete class per store when distinct keys are required.
+
+The subclass inherits the normal store behavior and adds only a runtime identity. Event handling,
+state and effect publication, command execution, and reducer orchestration stay final and cannot be
+overridden.
+
+Register the concrete class in Koin with `viewModelOf`:
+
+```kotlin
+import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.module
+
+val loginModule = module {
+    viewModelOf(::LoginStore)
+}
+```
+
+In Navigation 3, install the ViewModel store decorator for your entries and request the concrete
+class with `viewModel`:
+
+```kotlin
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
+
+NavDisplay(
+    backStack = backStack,
+    entryDecorators = listOf(
+        rememberSaveableStateHolderNavEntryDecorator(),
+        rememberViewModelStoreNavEntryDecorator(),
+    ),
+    entryProvider = entryProvider {
+        entry<LoginRoute> {
+            val store: LoginStore = viewModel()
+            LoginScreen(store)
+        }
+    },
+)
+```
+
+Because the concrete classes are different runtime types, two stores requested from the same
+`ViewModelStore` do not collide, and Koin definitions keyed by class remain separate.
+
+Direct creation through the four-type-parameter alias is still supported for simple local stores.
+It is fine when a single store is created directly and no DI or navigation framework needs to
+distinguish it. Use a concrete subclass as soon as the store is resolved by Koin, Navigation 3, or
+another API that keys by runtime class.
 
 ### GelmExternalReducer
 
