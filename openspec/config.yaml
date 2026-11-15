@@ -30,3 +30,6 @@ schema: spec-driven
 #     archive:
 #       guidance:
 #         - Summarize the archive outcome before finishing
+
+context: |
+  Write all artifacts in English

@@ -7,7 +7,7 @@ compatibility: Requires openspec CLI.
 metadata:
   author: openspec
   version: "1.0"
-  generatedBy: "1.17.0"
+  generatedBy: "2.0.0"
 ---
 
 Propose a new change - create the change and generate all artifacts in one step.
@@ -61,13 +61,13 @@ skip the branches below: stop before writing and show the user that error's `mes
 Otherwise, with no root, what happens next depends on how this workflow was reached:
 
 - **Auto-selected**: you chose this workflow yourself, without the user naming OpenSpec, naming this
-  skill, or running its slash command. Stop using OpenSpec and answer the request normally, as you
+  skill, or invoking this skill by name. Stop using OpenSpec and answer the request normally, as you
   would with no OpenSpec installed. Do not ask them to set anything up and do not mention OpenSpec
   setup.
-- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or ran its slash
-  command. Stop before writing and ask how to proceed: set this project up (`openspec init`), target
-  a store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait
-  for their answer.
+- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or invoked this skill by
+  name. Stop before writing and ask how to proceed: set this project up (`openspec init`), target a
+  store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait for
+  their answer.
 
 In both branches, never create the root as a side effect: do not run `openspec init` until the user
 asks for it, do not hand-create `openspec/` files, and do not let a command create it.
@@ -249,8 +249,8 @@ After completing all artifacts, summarize:
 - List of artifacts created with brief descriptions, plus any conditional artifact you skipped and
   why
 - What's ready: "All artifacts needed for implementation are ready."
-- Prompt: "The artifacts are ready for review. When you are ready, run `/opsx-apply` or ask me to
-  apply this change."
+- Prompt: "The artifacts are ready for review. When you are ready, use the `openspec-apply-change`
+  skill or ask me to apply this change."
 
 **Artifact Creation Guidelines**
 

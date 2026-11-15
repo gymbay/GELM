@@ -7,7 +7,7 @@ compatibility: Requires openspec CLI.
 metadata:
   author: openspec
   version: "1.0"
-  generatedBy: "1.17.0"
+  generatedBy: "2.0.0"
 ---
 
 Revise a change's existing planning artifacts and keep them coherent. Never edit code.
@@ -39,13 +39,13 @@ skip the branches below: stop before writing and show the user that error's `mes
 Otherwise, with no root, what happens next depends on how this workflow was reached:
 
 - **Auto-selected**: you chose this workflow yourself, without the user naming OpenSpec, naming this
-  skill, or running its slash command. Stop using OpenSpec and answer the request normally, as you
+  skill, or invoking this skill by name. Stop using OpenSpec and answer the request normally, as you
   would with no OpenSpec installed. Do not ask them to set anything up and do not mention OpenSpec
   setup.
-- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or ran its slash
-  command. Stop before writing and ask how to proceed: set this project up (`openspec init`), target
-  a store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait
-  for their answer.
+- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or invoked this skill by
+  name. Stop before writing and ask how to proceed: set this project up (`openspec init`), target a
+  store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait for
+  their answer.
 
 In both branches, never create the root as a side effect: do not run `openspec init` until the user
 asks for it, do not hand-create `openspec/` files, and do not let a command create it.
@@ -75,7 +75,8 @@ is missing, `openspec status --change "<name>" --json` names the next one and
    Mark the most recently modified change as "(Recommended)" since it's likely what the user wants
    to update.
 
-   Always announce: "Using change: <name>" and how to override (e.g., `/opsx-update <other>`).
+   Always announce: "Using change: <name>" and how to override (e.g.,
+   `openspec-update-change <other>`).
 
 2. **Get the change's artifacts**
    ```bash
@@ -155,8 +156,8 @@ is missing, `openspec status --change "<name>" --json` names the next one and
       `openspec status --change "<name>" --json` for the next artifact and point the user to
       `openspec instructions "<artifact-id>" --change "<name>" --json` for how to create it.
     - Change already implemented (tasks checked off / already applied) -> the code may no longer
-      match the revised plan; suggest `/opsx-apply` to carry the delta into code.
-    - Everything done and implemented -> suggest `/opsx-archive`.
+      match the revised plan; suggest `openspec-apply-change` to carry the delta into code.
+    - Everything done and implemented -> suggest `openspec-archive-change`.
 
 **Output**
 
@@ -166,12 +167,12 @@ After each invocation, show:
 - Any file created under a glob artifact that was already partially populated
 - Anything deferred because it does not exist yet (artifacts with no files and status `ready` or
   `blocked`, never `skipped` artifacts)
-- Where the change stands and the recommended next command
+- Where the change stands and the recommended next skill
 
 **Guardrails**
 
 - Planning artifacts only - NEVER edit implementation code. If the revised plan implies code
-  changes, stop and point to `/opsx-apply`.
+  changes, stop and point to `openspec-apply-change`.
 - Use the artifact ids and paths reported by `openspec status`; never branch on hardcoded artifact
   names.
 - Edit only the concrete files in `existingOutputPaths`, plus any confirmed concrete path allowed

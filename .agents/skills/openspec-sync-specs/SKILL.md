@@ -1,8 +1,13 @@
 ---
-name: "/opsx-sync"
-id: "opsx-sync"
-category: "Workflow"
-description: "Sync delta specs from a change to main specs"
+name: openspec-sync-specs
+description: Sync delta specs from an OpenSpec change to main specs. Use when the user wants to update main specs with changes from a delta spec, without archiving the change. Also use when the user says "openspec sync" or "opsx sync".
+allowed-tools: Bash(openspec:*)
+license: MIT
+compatibility: Requires openspec CLI.
+metadata:
+  author: openspec
+  version: "1.0"
+  generatedBy: "2.0.0"
 ---
 
 Sync delta specs from a change to main specs.
@@ -38,13 +43,13 @@ skip the branches below: stop before writing and show the user that error's `mes
 Otherwise, with no root, what happens next depends on how this workflow was reached:
 
 - **Auto-selected**: you chose this workflow yourself, without the user naming OpenSpec, naming this
-  skill, or running its slash command. Stop using OpenSpec and answer the request normally, as you
+  skill, or invoking this skill by name. Stop using OpenSpec and answer the request normally, as you
   would with no OpenSpec installed. Do not ask them to set anything up and do not mention OpenSpec
   setup.
-- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or ran its slash
-  command. Stop before writing and ask how to proceed: set this project up (`openspec init`), target
-  a store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait
-  for their answer.
+- **Explicit OpenSpec request**: the user named OpenSpec, named this skill, or invoked this skill by
+  name. Stop before writing and ask how to proceed: set this project up (`openspec init`), target a
+  store they already have (`--store <id>`), or continue without OpenSpec for this request. Wait for
+  their answer.
 
 In both branches, never create the root as a side effect: do not run `openspec init` until the user
 asks for it, do not hand-create `openspec/` files, and do not let a command create it.
@@ -52,9 +57,8 @@ asks for it, do not hand-create `openspec/` files, and do not let a command crea
 `<capability-path>` is the spec directory relative to `specs/` (for example, `user-auth` or
 `identity/user-auth`). Preserve the full path from each delta spec when resolving its main spec.
 
-**Input**: Optionally specify a change name after `/opsx-sync` (e.g., `/opsx-sync add-auth`). If
-omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST
-prompt for available changes.
+**Input**: Optionally specify a change name. If omitted, check if it can be inferred from
+conversation context. If vague or ambiguous you MUST prompt for available changes.
 
 **Steps**
 
@@ -68,7 +72,8 @@ prompt for available changes.
 
    When prompting, show changes that have delta specs (under `specs/` directory).
 
-   Always announce: "Using change: <name>" and how to override (e.g., `/opsx-sync <other>`).
+   Always announce: "Using change: <name>" and how to override (e.g.,
+   `openspec-sync-specs <other>`).
 
 2. **Resolve change context**
 
@@ -234,22 +239,27 @@ Only on a delta that introduces a brand-new capability. Seeds the new main spec.
 ## ADDED Requirements
 
 ### Requirement: New Feature
+
 The system SHALL do something new.
 
 #### Scenario: Basic case
+
 - **WHEN** user does X
 - **THEN** system does Y
 
 ## MODIFIED Requirements
 
 ### Requirement: Existing Feature
+
 The system SHALL keep doing the existing thing, now also handling A.
 
 #### Scenario: Scenario the main spec already has
+
 - **WHEN** user does X
 - **THEN** system does Y
 
 #### Scenario: New scenario to add
+
 - **WHEN** user does A
 - **THEN** system does B
 
@@ -273,14 +283,17 @@ single `## Requirements` section:
 # <capability> Specification
 
 ## Purpose
+
 Short description of what this capability does and why it exists.
 
 ## Requirements
 
 ### Requirement: New Feature
+
 The system SHALL do something new.
 
 #### Scenario: Basic case
+
 - **WHEN** user does X
 - **THEN** system does Y
 ```
@@ -303,10 +316,12 @@ Unlike programmatic merging, you merge rather than overwrite:
 Updated main specs:
 
 **<capability-1>**:
+
 - Added requirement: "New Feature"
 - Modified requirement: "Existing Feature" (added 1 scenario)
 
 **<capability-2>**:
+
 - Created new spec file
 - Added requirement: "Another Feature"
 
