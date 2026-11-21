@@ -44,8 +44,8 @@ None.
 - `gelm/src/commonTest/kotlin/io/github/gymbay/gelm/` (new subclassing test)
 - `app/src/main/java/io/github/gymbay/gelm/app/example/store/ExampleStore.kt` (five-type-parameter
   subclass demo)
-- `app/src/main/java/io/github/gymbay/gelm/app/example/store/MinimumStoreExample.kt` (
-  four-type-parameter alias subclass demo)
+- `app/src/main/java/io/github/gymbay/gelm/app/example/store/MinimumStoreExample.kt`
+  (four-type-parameter alias subclass demo)
 - `README.md`, `CHANGELOG.md`
 - No runtime behavior change for existing stores. The published Gradle metadata/POM will expose
   lifecycle and coroutines at compile scope, which may affect consumers that relied on them being

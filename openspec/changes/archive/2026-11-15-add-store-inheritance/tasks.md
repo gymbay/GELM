@@ -22,8 +22,8 @@
 
 - [x] 2.1 Promote `lifecycle-viewmodel` and `coroutines-core` from `implementation` to `api` in
   `commonMain`; verify `./gradlew :gelm:compileKotlinJvm` succeeds.
-- [x] 2.2 Verify the published metadata exposes both dependencies on the compile API variant (
-  generated POM/module metadata); the lifecycle and coroutines entries must no longer be
+- [x] 2.2 Verify the published metadata exposes both dependencies on the compile API variant
+  (generated POM/module metadata); the lifecycle and coroutines entries must no longer be
   runtime-only.
 - [x] 2.3 Update the README dependency section to describe compile-time exposure and keep the
   exclusion/version-override guidance accurate; verify the text matches the generated metadata.
